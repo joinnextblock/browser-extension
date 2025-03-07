@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "nextblock",
+  "version": "1.0",
+  "description": "use the nextblock extension to ear sats everytime a new block is mined",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "notifications"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "js": ["popup.js"]
+  }],
+  "background": {
+    "service_worker": "background.js"
+  }
+} 
