@@ -74,6 +74,8 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.storage.onChanged.addListener(async (changes, namespace) => {
   if (namespace === 'local' && changes.confirmationData) {
     console.log('changes.confirmationData', changes.confirmationData)
+
+    await chrome.storage.local.remove('nostrAccounts');
     try {
       const response = await fetch('https://t-api.nextblock.app/nostr-account', {
         method: 'GET',

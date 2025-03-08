@@ -150,6 +150,30 @@
         color: #ffffff;
         margin-top: 10px;
       }
+
+      #accounts-list {
+        display: none;
+        color: #ffffff;
+        font-family: 'IBM Plex Sans', sans-serif;
+      }
+
+      .account-item {
+        background-color: rgba(51, 0, 255, 0.1);
+        border: 1px solid #3300FF;
+        border-radius: 4px;
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+
+      .account-name {
+        font-weight: 500;
+        margin-bottom: 4px;
+      }
+
+      .account-details {
+        font-size: 12px;
+        opacity: 0.8;
+      }
     </style>
   </head>
   <body>
@@ -169,7 +193,11 @@
 
     <div id="loading-screen">
       <div class="loader"></div>
-      <div class="loading-text">fetching your nostr accounts...</div>
+      <div class="loading-text">Setting up your account...</div>
+    </div>
+
+    <div id="accounts-list">
+      <!-- Accounts will be inserted here -->
     </div>
 
     <script src="dist/popup.js"></script>

@@ -179,6 +179,51 @@ class Popup {
           }, 3000);
         }
       });
+
+      // Add function to display accounts
+      const displayAccounts = (accounts: any[]) => {
+        console.log(accounts)
+        const accountsList = document.getElementById('accounts-list');
+        const loadingScreen = document.getElementById('loading-screen');
+
+        if (accountsList && loadingScreen) {
+          // Hide loading screen
+          loadingScreen.style.display = 'none';
+
+          // Clear existing accounts
+          accountsList.innerHTML = '';
+
+          // Add accounts to the list
+          accounts.forEach(account => {
+            const accountElement = document.createElement('div');
+            accountElement.className = 'account-item';
+            accountElement.innerHTML = `
+              <div class="account-name">${account.nextblock_account_id || 'Account'}</div>
+              <div class="account-details">${account.nostr_account_id || ''}</div>
+            `;
+            accountsList.appendChild(accountElement);
+          });
+
+          // Show accounts list
+          accountsList.style.display = 'block';
+        }
+      };
+
+      // Listen for storage changes
+      chrome.storage.onChanged.addListener((changes, namespace) => {
+
+        if (namespace === 'local' && changes.nostrAccounts) {
+          const accounts = changes.nostrAccounts.newValue || [];
+          displayAccounts(accounts);
+        }
+      });
+
+      // Check if accounts already exist in storage on popup open
+      chrome.storage.local.get(['nostrAccount'], (result) => {
+        if (result.nostrAccount?.data) {
+          displayAccounts(result.nostrAccount.data);
+        }
+      });
     });
   }
 }
