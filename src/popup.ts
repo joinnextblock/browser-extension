@@ -158,7 +158,7 @@ class Popup {
           console.log('Confirmation response:', data);
 
           // Save confirmation response to storage
-          await chrome.storage.local.set({ confirmationData: data });
+          await chrome.storage.local.set({ confirmationData: data.data });
           console.log('Confirmation data saved to storage');
 
           // Show loading screen
