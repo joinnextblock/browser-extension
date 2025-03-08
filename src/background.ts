@@ -92,7 +92,7 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
       console.log('Nostr accounts response:', data);
 
       // Save the nostr accounts data to storage
-      await chrome.storage.local.set({ nostrAccounts: data });
+      await chrome.storage.local.set({ nostrAccounts: data.data });
       
     } catch (error) {
       console.error('Error fetching nostr accounts:', error);
