@@ -139,8 +139,7 @@ class Popup {
             },
             body: JSON.stringify({
               code: confirmationInput.value,
-              session: loginData.session,
-              email: loginData.email
+              ...loginData
             }),
           });
 
@@ -150,6 +149,10 @@ class Popup {
 
           const data = await response.json();
           console.log('Confirmation response:', data);
+
+          // Save confirmation response to storage
+          await chrome.storage.local.set({ confirmationData: data.data });
+          console.log('Confirmation data saved to storage');
 
           // Show success state
           confirmButton.textContent = 'Success!';
@@ -168,7 +171,7 @@ class Popup {
           // Reset button after 3 seconds
           setTimeout(() => {
             confirmButton.textContent = 'Confirm';
-            confirmButton.style.backgroundColor = 'transparent';
+            confirmButton.style.backgroundColor = '#3300FF'; // Reset to original color
             confirmButton.style.color = '#ffffff';
           }, 3000);
         }
