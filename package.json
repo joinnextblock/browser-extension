@@ -6,7 +6,10 @@
     "build": "webpack --config webpack.config.js",
     "watch": "webpack --config webpack.config.js --watch"
   },
-  "keywords": ["nostr", "browser-extension"],
+  "keywords": [
+    "nostr",
+    "browser-extension"
+  ],
   "author": "",
   "license": "ISC",
   "description": "",
@@ -19,6 +22,7 @@
   },
   "dependencies": {
     "@nostr-dev-kit/ndk": "^2.12.2",
-    "nostr-tools": "^2.10.4"
+    "nostr-tools": "^2.10.4",
+    "pino": "^9.6.0"
   }
 }

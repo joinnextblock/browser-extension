@@ -1,12 +1,50 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>TypeScript Extension</title>
+    <title>Nostr Extension</title>
+    <!-- Import IBM Plex Sans font -->
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500&display=swap" rel="stylesheet">
+    <style>
+      body {
+        width: 200px;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        background-color: #000000;
+        color: #ffffff;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        cursor: pointer;
+        border: 1px solid #ffffff;
+        border-radius: 4px;
+        font-size: 14px;
+        background-color: transparent;
+        color: #ffffff;
+        transition: background-color 0.2s;
+        font-family: 'IBM Plex Sans', sans-serif;
+        font-weight: 500;
+      }
+      button:hover {
+        background-color: #ffffff;
+        color: #000000;
+      }
+
+      #login {
+        background-color: #3300FF;
+        border-color: #2196F3;
+      }
+      #login:hover {
+        background-color: #2196F3;
+        color: #ffffff;
+      }
+    </style>
   </head>
   <body>
-    <h1>TypeScript Extension</h1>
-    <button id="clickMe">Click Me!</button>
-    <p>Count: <span id="counter">0</span></p>
+    <h1>nextblock: attn marketplace</h1>
+    <button id="login">Login</button>
     <script src="dist/popup.js"></script>
   </body>
 </html> 

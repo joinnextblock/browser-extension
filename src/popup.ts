@@ -13,19 +13,18 @@ class Popup {
 
   private initialize(): void {
     document.addEventListener('DOMContentLoaded', () => {
-      const button = document.getElementById('clickMe');
-      if (button) {
-        button.addEventListener('click', () => this.handleClick());
-      }
-    });
-  }
 
-  private handleClick(): void {
-    this.state.count++;
-    const counter = document.getElementById('counter');
-    if (counter) {
-      counter.textContent = this.state.count.toString();
-    }
+      const loginButton = document.getElementById('login');
+
+      loginButton?.addEventListener('click', async () => {
+        try {
+          // TODO: Implement login logic
+          console.log('Login clicked');
+        } catch (error) {
+          console.error('Login error:', error);
+        }
+      });
+    });
   }
 }
 
