@@ -18,24 +18,38 @@
         width: 100%;
         margin-bottom: 20px;
       }
-      button {
+      .marketplace-text {
+        font-family: 'IBM Plex Sans', sans-serif;
+        font-weight: 500;
+        color: #ffffff;
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      button, input {
         width: 100%;
         padding: 10px;
-        cursor: pointer;
-        border: 1px solid #ffffff;
         border-radius: 4px;
         font-size: 14px;
+        font-family: 'IBM Plex Sans', sans-serif;
+        font-weight: 500;
+        box-sizing: border-box;
+      }
+      button {
+        cursor: pointer;
+        border: 1px solid #ffffff;
         background-color: transparent;
         color: #ffffff;
         transition: background-color 0.2s;
-        font-family: 'IBM Plex Sans', sans-serif;
-        font-weight: 500;
       }
       button:hover {
         background-color: #ffffff;
         color: #000000;
       }
-
+      input {
+        background-color: #ffffff;
+        border: none;
+        margin-bottom: 10px;
+      }
       #login {
         border-color: #2196F3;
       }
@@ -43,11 +57,43 @@
         background-color: #2196F3;
         color: #ffffff;
       }
+      #submit {
+        border-color: #4CAF50;
+      }
+      #submit:hover {
+        background-color: #4CAF50;
+        color: #ffffff;
+      }
+      #login-form {
+        display: none;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed !important;
+      }
+      
+      button:disabled:hover {
+        background-color: transparent;
+        color: #ffffff;
+      }
+
+      #submit:disabled:hover {
+        background-color: transparent;
+        border-color: #4CAF50;
+        color: #ffffff;
+      }
     </style>
   </head>
   <body>
     <img src="logo-text.png" alt="Logo" class="logo">
+    <span class="marketplace-text">attn marketplace</span>
     <button id="login">Login</button>
+    
+    <div id="login-form">
+      <input type="email" id="email" placeholder="Enter your email">
+      <button id="submit">Submit</button>
+    </div>
+
     <script src="dist/popup.js"></script>
   </body>
 </html> 
