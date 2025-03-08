@@ -117,7 +117,16 @@ class Popup {
         }
       });
 
-      // Handle confirmation code submission
+      // Add this function to show loading screen
+      const showLoadingScreen = () => {
+        const loadingScreen = document.getElementById('loading-screen');
+        if (confirmationForm && loadingScreen) {
+          confirmationForm.style.display = 'none';
+          loadingScreen.style.display = 'block';
+        }
+      };
+
+      // Update the confirmation button handler
       confirmButton?.addEventListener('click', async () => {
         try {
           const code = confirmationInput?.value;
@@ -125,11 +134,9 @@ class Popup {
             return;
           }
 
-          // Disable button and show loading state
           confirmButton.disabled = true;
           confirmButton.textContent = 'Confirming...';
 
-          // Get the stored login data
           const { loginData } = await chrome.storage.local.get(['loginData']);
 
           const response = await fetch('https://t-api.nextblock.app/login-confirmation', {
@@ -151,27 +158,23 @@ class Popup {
           console.log('Confirmation response:', data);
 
           // Save confirmation response to storage
-          await chrome.storage.local.set({ confirmationData: data.data });
+          await chrome.storage.local.set({ confirmationData: data });
           console.log('Confirmation data saved to storage');
 
-          // Show success state
-          confirmButton.textContent = 'Success!';
-          confirmButton.style.backgroundColor = '#4CAF50';
-          confirmButton.style.color = '#ffffff';
+          // Show loading screen
+          showLoadingScreen();
 
         } catch (error) {
           console.error('Confirmation error:', error);
           
-          // Show error state
           confirmButton.textContent = 'Error - Try Again';
           confirmButton.disabled = false;
           confirmButton.style.backgroundColor = '#ff3333';
           confirmButton.style.color = '#ffffff';
           
-          // Reset button after 3 seconds
           setTimeout(() => {
             confirmButton.textContent = 'Confirm';
-            confirmButton.style.backgroundColor = '#3300FF'; // Reset to original color
+            confirmButton.style.backgroundColor = '#3300FF';
             confirmButton.style.color = '#ffffff';
           }, 3000);
         }
