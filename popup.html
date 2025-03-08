@@ -97,6 +97,17 @@
         background-color: #ff3333;
         color: #ffffff;
       }
+
+      #confirmation-form {
+        display: none;
+      }
+
+      .confirmation-text {
+        font-family: 'IBM Plex Sans', sans-serif;
+        font-weight: 500;
+        color: #ffffff;
+        margin-bottom: 10px;
+      }
     </style>
   </head>
   <body>
@@ -107,6 +118,11 @@
     <div id="login-form">
       <input type="email" id="email" placeholder="Enter your email">
       <button id="submit">Submit</button>
+    </div>
+
+    <div id="confirmation-form">
+      <input type="text" id="confirmation-code" placeholder="Enter confirmation code">
+      <button id="confirm">Confirm</button>
     </div>
 
     <script src="dist/popup.js"></script>
