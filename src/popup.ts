@@ -57,16 +57,49 @@ class Popup {
         try {
           const email = emailInput?.value;
           if (!isValidEmail(email)) {
-            return; // Don't proceed if email is invalid
+            return;
           }
 
-          // Handle email submission
-          const message = { type: 'LOGIN', email };
-          const response = await chrome.runtime.sendMessage(message);
-          console.log('Login response:', response);
-          
+          // Disable submit button while processing
+          submitButton.disabled = true;
+          submitButton.textContent = 'Submitting...';
+
+          const response = await fetch('https://t-api.nextblock.app/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ email }),
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          console.log('API response:', data);
+
+          // Show success state
+          submitButton.textContent = 'Success!';
+          submitButton.style.backgroundColor = '#4CAF50';
+          submitButton.style.color = '#ffffff';
+
         } catch (error) {
-          console.error('Login error:', error);
+          console.error('Submission error:', error);
+          
+          // Show error state
+          submitButton.textContent = 'Error - Try Again';
+          submitButton.disabled = false;
+          submitButton.style.backgroundColor = '#ff3333';
+          submitButton.style.color = '#ffffff';
+          
+          // Reset button after 3 seconds
+          setTimeout(() => {
+            submitButton.textContent = 'Submit';
+            submitButton.style.backgroundColor = 'transparent';
+            submitButton.style.color = '#ffffff';
+            updateSubmitButtonState();
+          }, 3000);
         }
       });
     });
