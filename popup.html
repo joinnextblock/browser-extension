@@ -225,6 +225,37 @@
         opacity: 0.5;
         cursor: not-allowed;
       }
+
+      #error-screen {
+        text-align: center;
+        padding: 20px;
+        color: #ffffff;
+        font-family: 'IBM Plex Sans', sans-serif;
+      }
+
+      .error-message {
+        color: #ff3333;
+        margin-bottom: 16px;
+        font-size: 14px;
+      }
+
+      .retry-button {
+        width: 100%;
+        padding: 10px;
+        cursor: pointer;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        background-color: #3300FF;
+        color: #ffffff;
+        transition: background-color 0.2s;
+        font-family: 'IBM Plex Sans', sans-serif;
+        font-weight: 500;
+      }
+
+      .retry-button:hover {
+        background-color: #2900cc;
+      }
     </style>
   </head>
   <body>
@@ -250,6 +281,11 @@
     <div id="accounts-list">
       <button id="refresh">Refresh</button>
       <!-- accounts will be listed here -->
+    </div>
+
+    <div id="error-screen" style="display: none;">
+      <div class="error-message"></div>
+      <button id="error-retry" class="retry-button">Try Again</button>
     </div>
 
     <script src="dist/popup.js"></script>

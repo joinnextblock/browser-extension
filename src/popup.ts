@@ -11,6 +11,9 @@ interface DOMElements {
   loadingScreen: HTMLElement | null;
   accountsList: HTMLElement | null;
   refreshButton: HTMLElement | null;
+  errorScreen: HTMLElement | null;
+  errorMessage: HTMLElement | null;
+  errorRetry: HTMLElement | null;
 }
 
 interface NostrAccount {
@@ -25,6 +28,17 @@ interface StorageData {
   nostrAccounts: NostrAccount[];
 }
 
+interface LoginResponse {
+  session: string;
+  challenge_name: string;
+}
+
+interface ConfirmationRequest {
+  code: string;
+  session: string;
+  email: string;
+}
+
 // API Functions
 const api = {
   async login(email: string): Promise<Response> {
@@ -35,11 +49,15 @@ const api = {
     });
   },
 
-  async confirmLogin(code: string, loginData: any): Promise<Response> {
+  async confirmLogin({ code, email, session }: ConfirmationRequest): Promise<Response> {
+    const body: ConfirmationRequest = {
+      code, email, session
+    };
+
     return fetch('https://t-api.nextblock.app/login-confirmation', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, ...loginData })
+      body: JSON.stringify(body)
     });
   },
 
@@ -70,6 +88,7 @@ const ui = {
     this.hideElement(elements.confirmationForm);
     this.hideElement(elements.loadingScreen);
     this.hideElement(elements.accountsList);
+    this.hideElement(elements.errorScreen);
   },
 
   createAccountElement(account: NostrAccount): HTMLDivElement {
@@ -97,6 +116,14 @@ const ui = {
     });
 
     this.showElement(elements.accountsList);
+  },
+
+  showError(elements: DOMElements, message: string) {
+    this.hideAllScreens(elements);
+    if (elements.errorScreen && elements.errorMessage) {
+      elements.errorMessage.textContent = message;
+      elements.errorScreen.style.display = 'block';
+    }
   }
 };
 
@@ -112,33 +139,38 @@ const handlers = {
   async handleLogin(elements: DOMElements, email: string) {
     try {
       const response = await api.login(email);
-      if (!response.ok) throw new Error('Login failed');
+      if (!response.ok) throw new Error('Login failed. Please try again.');
 
-      const data = await response.json();
-      await chrome.storage.local.set({ loginData: data });
+      const { data, metadata } = await response.json();
+      await chrome.storage.local.set({ loginData: { ...data, email } });
 
       ui.hideAllScreens(elements);
       ui.showElement(elements.confirmationForm);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Login error:', error);
+      ui.showError(elements, error instanceof Error ? error.message : 'An unknown error occurred');
     } finally {
-      console.log('login handled')
+      console.log('login handled');
     }
   },
 
   async handleConfirmation(elements: DOMElements, code: string) {
     try {
       const { loginData } = await chrome.storage.local.get(['loginData']);
-      const response = await api.confirmLogin(code, loginData);
-      if (!response.ok) throw new Error('Confirmation failed');
+      const response = await api.confirmLogin({ code, email: loginData.email, session: loginData.session });
+      if (!response.ok) throw new Error('Confirmation failed. Please try again.');
 
-      const data = await response.json();
+      const { data, metadata } = await response.json();
       await chrome.storage.local.set({ confirmationData: data });
 
       ui.hideAllScreens(elements);
       ui.showElement(elements.loadingScreen);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Confirmation error:', error);
+      ui.showError(elements, error instanceof Error ? error.message : 'An unknown error occurred');
+    }
+    finally {
+      console.log('confirmation handled');
     }
   },
 
@@ -159,7 +191,7 @@ const handlers = {
 // Initialize
 async function initializePopup(elements: DOMElements) {
   try {
-    const storage = await chrome.storage.local.get(['confirmationData', 'nostrAccounts']);
+    const storage = await chrome.storage.local.get(['confirmationData', 'list_nostr_account']);
 
     if (storage.confirmationData && storage.nostrAccounts?.data) {
       ui.renderAccounts(elements, storage.nostrAccounts.data);
@@ -210,6 +242,9 @@ document.addEventListener(DOM_CONTENT_LOADED, () => {
     loginForm: document.getElementById('login-form'),
     confirmationForm: document.getElementById('confirmation-form'),
     submitButton: document.getElementById('submit') as HTMLButtonElement,
+    errorScreen: document.getElementById('error-screen'),
+    errorMessage: document.getElementById('error-message'),
+    errorRetry: document.getElementById('error-retry'),
     emailInput: document.getElementById('email') as HTMLInputElement,
     confirmButton: document.getElementById('confirm') as HTMLButtonElement,
     confirmationInput: document.getElementById('confirmation-code') as HTMLInputElement,

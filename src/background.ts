@@ -57,7 +57,7 @@ const chrome_storage_on_changed_handler = async (changes: any, namespace: any) =
   switch (namespace) {
     case 'local': {
       // Handler changes to confirmationData
-      if (changes.confirmationData.newValue) {
+      if (changes.confirmationData) {
         console.log('changes.confirmationData', changes.confirmationData)
 
         await chrome.storage.local.remove('nostrAccounts');
@@ -78,11 +78,11 @@ const chrome_storage_on_changed_handler = async (changes: any, namespace: any) =
               throw new Error(`HTTP error! status: ${response.status}`);
             }
 
-            const data = await response.json();
-            console.log('Nostr accounts response:', data);
+            const { data: list_nostr_account, metadata } = await response.json();
+            console.log('Nostr accounts response:', list_nostr_account);
 
             // Save the nostr accounts data to storage
-            await chrome.storage.local.set({ nostrAccounts: data.data });
+            await chrome.storage.local.set({ list_nostr_account });
 
           } catch (error) {
             console.error('Error fetching nostr accounts:', error);
@@ -90,7 +90,7 @@ const chrome_storage_on_changed_handler = async (changes: any, namespace: any) =
         }
       }
       // Handler changes to nostrAccounts
-      if (changes.nostrAccounts.newValue) {
+      if (changes.nostrAccounts) {
         const authors = changes.nostrAccounts.newValue.map(({ nostr_account_id }: any) => nostr_account_id);
         console.log('authors', authors);
         // TODO: query nextblock relay for nostr event kind 0 and 100002
