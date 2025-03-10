@@ -3,7 +3,6 @@ const path = require('path');
 const dotenv = require('dotenv');
 const env = dotenv.config().parsed;
 
-console.log(env);
 module.exports = {
   mode: env.NEXTBLOCK_WEBPACK_MODE,
   devtool: 'source-map',

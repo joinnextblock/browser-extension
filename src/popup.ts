@@ -3,6 +3,7 @@ interface PopupState {
   nextblock_account: object | null;
 }
 
+const DOM_CONTENT_LOADED = 'DOMContentLoaded';
 /**
  * Popup class    
  * @description This class is responsible for the popup UI and functionality
@@ -18,7 +19,7 @@ class Popup {
   }
 
   private initialize(): void {
-    document.addEventListener('DOMContentLoaded', async () => {
+    document.addEventListener(DOM_CONTENT_LOADED, async () => {
       const loginButton = document.getElementById('login');
       const loginForm = document.getElementById('login-form');
       const confirmationForm = document.getElementById('confirmation-form');
@@ -189,34 +190,35 @@ class Popup {
 
       // Add function to display accounts
       const displayAccounts = (accounts: any[]) => {
-        if (accountsList && loadingScreen) {
-          // Hide all other screens
-          if (loginButton) loginButton.style.display = 'none';
-          if (loginForm) loginForm.style.display = 'none';
-          if (confirmationForm) confirmationForm.style.display = 'none';
-          loadingScreen.style.display = 'none';
+        // console.log('displayAccounts', {accounts});
+        // if (accountsList && loadingScreen) {
+        //   // Hide all other screens
+        //   if (loginButton) loginButton.style.display = 'none';
+        //   if (loginForm) loginForm.style.display = 'none';
+        //   if (confirmationForm) confirmationForm.style.display = 'none';
+        //   loadingScreen.style.display = 'none';
 
-          // Clear existing accounts but preserve the refresh button
-          const refreshButton = document.getElementById('refresh');
-          accountsList.innerHTML = ''; // Clear the list
-          if (refreshButton) {
-            accountsList.appendChild(refreshButton); // Put the refresh button back
-          }
+        //   // Clear existing accounts but preserve the refresh button
+        //   const refreshButton = document.getElementById('refresh');
+        //   accountsList.innerHTML = ''; // Clear the list
+        //   if (refreshButton) {
+        //     accountsList.appendChild(refreshButton); // Put the refresh button back
+        //   }
 
-          // Add accounts to the list
-          accounts.forEach(account => {
-            const accountElement = document.createElement('div');
-            accountElement.className = 'account-item';
-            accountElement.innerHTML = `
-              <div class="account-name">${account.name || 'Account'}</div>
-              <div class="account-details">${account.public_key || ''}</div>
-            `;
-            accountsList.appendChild(accountElement);
-          });
+        //   // Add accounts to the list
+        //   accounts.forEach(account => {
+        //     const accountElement = document.createElement('div');
+        //     accountElement.className = 'account-item';
+        //     accountElement.innerHTML = `
+        //       <div class="account-name">${account.name || 'Account'}</div>
+        //       <div class="account-details">${account.public_key || ''}</div>
+        //     `;
+        //     accountsList.appendChild(accountElement);
+        //   });
 
-          // Show accounts list
-          accountsList.style.display = 'block';
-        }
+        //   // Show accounts list
+        //   accountsList.style.display = 'block';
+        // }
       };
 
       // Check for existing confirmationData on load
