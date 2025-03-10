@@ -1,316 +1,222 @@
-interface PopupState {
-  list_nostr_account: object[];
-  nextblock_account: object | null;
+const DOM_CONTENT_LOADED = 'DOMContentLoaded';
+// Types and Interfaces
+interface DOMElements {
+  loginButton: HTMLElement | null;
+  loginForm: HTMLElement | null;
+  confirmationForm: HTMLElement | null;
+  submitButton: HTMLButtonElement | null;
+  emailInput: HTMLInputElement | null;
+  confirmButton: HTMLButtonElement | null;
+  confirmationInput: HTMLInputElement | null;
+  loadingScreen: HTMLElement | null;
+  accountsList: HTMLElement | null;
+  refreshButton: HTMLElement | null;
 }
 
-const DOM_CONTENT_LOADED = 'DOMContentLoaded';
-/**
- * Popup class    
- * @description This class is responsible for the popup UI and functionality
- */
-class Popup {
-  private state: PopupState = {
-    nextblock_account: null,
-    list_nostr_account: []
+interface NostrAccount {
+  nextblock_account_id: string;
+  nostr_account_id: string;
+}
+
+interface StorageData {
+  confirmationData: {
+    access_token: string;
   };
+  nostrAccounts: NostrAccount[];
+}
 
-  constructor() {
-    this.initialize();
-  }
+// API Functions
+const api = {
+  async login(email: string): Promise<Response> {
+    return fetch('https://t-api.nextblock.app/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+  },
 
-  private initialize(): void {
-    document.addEventListener(DOM_CONTENT_LOADED, async () => {
-      const loginButton = document.getElementById('login');
-      const loginForm = document.getElementById('login-form');
-      const confirmationForm = document.getElementById('confirmation-form');
-      const submitButton = document.getElementById('submit') as HTMLButtonElement;
-      const emailInput = document.getElementById('email') as HTMLInputElement;
-      const confirmButton = document.getElementById('confirm') as HTMLButtonElement;
-      const confirmationInput = document.getElementById('confirmation-code') as HTMLInputElement;
-      const loadingScreen = document.getElementById('loading-screen');
-      const accountsList = document.getElementById('accounts-list');
+  async confirmLogin(code: string, loginData: any): Promise<Response> {
+    return fetch('https://t-api.nextblock.app/login-confirmation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, ...loginData })
+    });
+  },
 
-      // Email validation function
-      const isValidEmail = (email: string): boolean => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email);
-      };
-
-      // Update submit button state
-      const updateSubmitButtonState = () => {
-        if (submitButton) {
-          const isValid = isValidEmail(emailInput?.value || '');
-          submitButton.disabled = !isValid;
-
-          // Update button styles based on state
-          if (isValid) {
-            submitButton.style.opacity = '1';
-            submitButton.style.cursor = 'pointer';
-          } else {
-            submitButton.style.opacity = '0.5';
-            submitButton.style.cursor = 'not-allowed';
-          }
-        }
-      };
-
-      const showConfirmationForm = () => {
-        if (loginForm && confirmationForm) {
-          loginForm.style.display = 'none';
-          confirmationForm.style.display = 'block';
-        }
-      };
-
-      const showLoadingScreen = () => {
-        if (loginButton) loginButton.style.display = 'none';
-        if (loginForm) loginForm.style.display = 'none';
-        if (confirmationForm) confirmationForm.style.display = 'none';
-        if (accountsList) accountsList.style.display = 'none';
-        if (loadingScreen) loadingScreen.style.display = 'block';
-      };
-
-      loginButton?.addEventListener('click', () => {
-        if (loginButton && loginForm) {
-          loginButton.style.display = 'none';
-          loginForm.style.display = 'block';
-          // Initialize submit button state
-          updateSubmitButtonState();
-        }
-      });
-
-      // Add input event listener to email field
-      emailInput?.addEventListener('input', updateSubmitButtonState);
-
-      submitButton?.addEventListener('click', async () => {
-        try {
-          const email = emailInput?.value;
-          if (!isValidEmail(email)) {
-            return;
-          }
-
-          submitButton.disabled = true;
-          submitButton.textContent = 'Submitting...';
-
-          const response = await fetch('https://t-api.nextblock.app/login', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ email }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const data = await response.json();
-          console.log('API response:', data);
-
-          // Save both response data and email to chrome.storage.local
-          await chrome.storage.local.set({
-            loginData: {
-              ...data.data,
-              email,
-            }
-          });
-          console.log('Login data and email saved to storage');
-
-          // Show confirmation form
-          showConfirmationForm();
-
-        } catch (error) {
-          console.error('Submission error:', error);
-
-          submitButton.textContent = 'Error - Try Again';
-          submitButton.disabled = false;
-          submitButton.style.backgroundColor = '#ff3333';
-          submitButton.style.color = '#ffffff';
-
-          setTimeout(() => {
-            submitButton.textContent = 'Submit';
-            submitButton.style.backgroundColor = 'transparent';
-            submitButton.style.color = '#ffffff';
-            updateSubmitButtonState();
-          }, 3000);
-        }
-      });
-
-      // Update the confirmation button handler
-      confirmButton?.addEventListener('click', async () => {
-        try {
-          const code = confirmationInput?.value;
-          if (!code) {
-            return;
-          }
-
-          confirmButton.disabled = true;
-          confirmButton.textContent = 'Confirming...';
-
-          const { loginData } = await chrome.storage.local.get(['loginData']);
-
-          const response = await fetch('https://t-api.nextblock.app/login-confirmation', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              code: confirmationInput.value,
-              ...loginData
-            }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const data = await response.json();
-          console.log('Confirmation response:', data);
-
-          // Save confirmation response to storage
-          await chrome.storage.local.set({ confirmationData: data.data });
-          console.log('Confirmation data saved to storage');
-
-          // Show loading screen
-          showLoadingScreen();
-
-        } catch (error) {
-          console.error('Confirmation error:', error);
-
-          confirmButton.textContent = 'Error - Try Again';
-          confirmButton.disabled = false;
-          confirmButton.style.backgroundColor = '#ff3333';
-          confirmButton.style.color = '#ffffff';
-
-          setTimeout(() => {
-            confirmButton.textContent = 'Confirm';
-            confirmButton.style.backgroundColor = '#3300FF';
-            confirmButton.style.color = '#ffffff';
-          }, 3000);
-        }
-      });
-
-      // Add function to display accounts
-      const displayAccounts = (accounts: any[]) => {
-        // console.log('displayAccounts', {accounts});
-        // if (accountsList && loadingScreen) {
-        //   // Hide all other screens
-        //   if (loginButton) loginButton.style.display = 'none';
-        //   if (loginForm) loginForm.style.display = 'none';
-        //   if (confirmationForm) confirmationForm.style.display = 'none';
-        //   loadingScreen.style.display = 'none';
-
-        //   // Clear existing accounts but preserve the refresh button
-        //   const refreshButton = document.getElementById('refresh');
-        //   accountsList.innerHTML = ''; // Clear the list
-        //   if (refreshButton) {
-        //     accountsList.appendChild(refreshButton); // Put the refresh button back
-        //   }
-
-        //   // Add accounts to the list
-        //   accounts.forEach(account => {
-        //     const accountElement = document.createElement('div');
-        //     accountElement.className = 'account-item';
-        //     accountElement.innerHTML = `
-        //       <div class="account-name">${account.name || 'Account'}</div>
-        //       <div class="account-details">${account.public_key || ''}</div>
-        //     `;
-        //     accountsList.appendChild(accountElement);
-        //   });
-
-        //   // Show accounts list
-        //   accountsList.style.display = 'block';
-        // }
-      };
-
-      // Check for existing confirmationData on load
-      const initializeView = async () => {
-        const { confirmationData, nostrAccounts } = await chrome.storage.local.get(['confirmationData', 'nostrAccounts']);
-
-        if (confirmationData) {
-          // If we have confirmation data but no nostr account, show loading
-          if (!nostrAccounts) {
-            showLoadingScreen();
-            // Fetch nostr accounts while loading screen is shown
-            try {
-              const response = await fetch('https://t-api.nextblock.app/nostr-account', {
-                method: 'GET',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'x-nextblock-authorization': confirmationData.access_token
-                }
-              });
-
-              if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-              }
-
-              const accountData = await response.json();
-
-              // Save accounts to storage
-              await chrome.storage.local.set({ nostrAccounts: accountData.data });
-
-              // Display the accounts
-              displayAccounts(accountData.data);
-            } catch (error) {
-              console.error('Error fetching nostr accounts:', error);
-              // Keep loading screen visible to indicate error state
-              if (loadingScreen) {
-                const loadingText = loadingScreen.querySelector('.loading-text');
-                if (loadingText) {
-                  loadingText.textContent = 'Error loading accounts. Please try again.';
-                }
-              }
-            }
-          }
-          // If we have both, show accounts
-          else if (nostrAccounts) {
-            displayAccounts(nostrAccounts);
-          }
-        } else {
-          // Show login button if no confirmation data
-          if (loginButton) loginButton.style.display = 'block';
-        }
-      };
-
-      // Initialize view on load
-      await initializeView();
-
-      // Listen for storage changes
-      chrome.storage.onChanged.addListener((changes, namespace) => {
-        if (namespace === 'local' && changes.nostrAccounts) {
-          const accounts = changes.nostrAccounts.newValue || [];
-
-          displayAccounts(accounts);
-        }
-      });
-
-      // Add refresh button click handler
-      const refreshButton = document.getElementById('refresh');
-      refreshButton?.addEventListener('click', async () => {
-        try {
-          const { confirmationData } = await chrome.storage.local.get(['confirmationData']);
-
-          const response = await fetch('https://t-api.nextblock.app/nostr-account', {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'x-nextblock-authorization': confirmationData.access_token
-            }
-          });
-
-          if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-          }
-
-          const data = await response.json();
-          await chrome.storage.local.set({ nostrAccounts: data });
-          console.log('Accounts refreshed');
-
-        } catch (error) {
-          console.error('Error refreshing accounts:', error);
-        }
-      });
+  async fetchAccounts(access_token: string): Promise<Response> {
+    return fetch('https://t-api.nextblock.app/nostr-account', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-nextblock-authorization': access_token
+      }
     });
   }
+};
+
+// UI Helpers
+const ui = {
+  showElement(element: HTMLElement | null) {
+    if (element) element.style.display = 'block';
+  },
+
+  hideElement(element: HTMLElement | null) {
+    if (element) element.style.display = 'none';
+  },
+
+  hideAllScreens(elements: DOMElements) {
+    this.hideElement(elements.loginButton);
+    this.hideElement(elements.loginForm);
+    this.hideElement(elements.confirmationForm);
+    this.hideElement(elements.loadingScreen);
+    this.hideElement(elements.accountsList);
+  },
+
+  createAccountElement(account: NostrAccount): HTMLDivElement {
+    const element = document.createElement('div');
+    element.className = 'account-item';
+    element.innerHTML = `
+      <div class="account-name">${account.nextblock_account_id || 'Account'}</div>
+      <div class="account-details">${account.nostr_account_id || ''}</div>
+    `;
+    return element;
+  },
+
+  renderAccounts(elements: DOMElements, accounts: NostrAccount[]) {
+    this.hideAllScreens(elements);
+    if (!elements.accountsList) return;
+
+    elements.accountsList.innerHTML = '';
+    if (elements.refreshButton) {
+      elements.accountsList.appendChild(elements.refreshButton);
+    }
+    accounts.forEach(account => {
+      if (elements.accountsList) {
+        elements.accountsList.appendChild(this.createAccountElement(account));
+      }
+    });
+
+    this.showElement(elements.accountsList);
+  }
+};
+
+// Validation
+const validation = {
+  isValidEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+};
+
+// Event Handlers
+const handlers = {
+  async handleLogin(elements: DOMElements, email: string) {
+    try {
+      const response = await api.login(email);
+      if (!response.ok) throw new Error('Login failed');
+
+      const data = await response.json();
+      await chrome.storage.local.set({ loginData: data });
+
+      ui.hideAllScreens(elements);
+      ui.showElement(elements.confirmationForm);
+    } catch (error) {
+      console.error('Login error:', error);
+    } finally {
+      console.log('login handled')
+    }
+  },
+
+  async handleConfirmation(elements: DOMElements, code: string) {
+    try {
+      const { loginData } = await chrome.storage.local.get(['loginData']);
+      const response = await api.confirmLogin(code, loginData);
+      if (!response.ok) throw new Error('Confirmation failed');
+
+      const data = await response.json();
+      await chrome.storage.local.set({ confirmationData: data });
+
+      ui.hideAllScreens(elements);
+      ui.showElement(elements.loadingScreen);
+    } catch (error) {
+      console.error('Confirmation error:', error);
+    }
+  },
+
+  async handleRefresh(elements: DOMElements) {
+    try {
+      const { confirmationData } = await chrome.storage.local.get(['confirmationData']);
+      const response = await api.fetchAccounts(confirmationData.access_token);
+      if (!response.ok) throw new Error('Failed to fetch accounts');
+
+      const data = await response.json();
+      await chrome.storage.local.set({ nostrAccounts: data });
+    } catch (error) {
+      console.error('Refresh error:', error);
+    }
+  }
+};
+
+// Initialize
+async function initializePopup(elements: DOMElements) {
+  try {
+    const storage = await chrome.storage.local.get(['confirmationData', 'nostrAccounts']);
+
+    if (storage.confirmationData && storage.nostrAccounts?.data) {
+      ui.renderAccounts(elements, storage.nostrAccounts.data);
+    } else {
+      ui.showElement(elements.loginButton);
+    }
+
+    // Event Listeners
+    elements.loginButton?.addEventListener('click', () => {
+      ui.hideElement(elements.loginButton);
+      ui.showElement(elements.loginForm);
+    });
+
+    elements.submitButton?.addEventListener('click', () => {
+      const email = elements.emailInput?.value;
+      if (email && validation.isValidEmail(email)) {
+        handlers.handleLogin(elements, email);
+      }
+    });
+
+    elements.confirmButton?.addEventListener('click', () => {
+      const code = elements.confirmationInput?.value;
+      if (code) {
+        handlers.handleConfirmation(elements, code);
+      }
+    });
+
+    elements.refreshButton?.addEventListener('click', () => {
+      handlers.handleRefresh(elements);
+    });
+
+    // Storage change listener
+    chrome.storage.onChanged.addListener((changes, namespace) => {
+      if (namespace === 'local' && changes.nostrAccounts?.newValue?.data) {
+        ui.renderAccounts(elements, changes.nostrAccounts.newValue.data);
+      }
+    });
+
+  } catch (error) {
+    console.error('Initialization error:', error);
+  }
 }
 
-new Popup(); 
+// Entry Point
+document.addEventListener(DOM_CONTENT_LOADED, () => {
+  const elements: DOMElements = {
+    loginButton: document.getElementById('login'),
+    loginForm: document.getElementById('login-form'),
+    confirmationForm: document.getElementById('confirmation-form'),
+    submitButton: document.getElementById('submit') as HTMLButtonElement,
+    emailInput: document.getElementById('email') as HTMLInputElement,
+    confirmButton: document.getElementById('confirm') as HTMLButtonElement,
+    confirmationInput: document.getElementById('confirmation-code') as HTMLInputElement,
+    loadingScreen: document.getElementById('loading-screen'),
+    accountsList: document.getElementById('accounts-list'),
+    refreshButton: document.getElementById('refresh')
+  };
+
+  initializePopup(elements);
+}); 
