@@ -1,5 +1,5 @@
 import { ui } from './ui';
-import { handlers } from './handlers';
+// import { handlers } from './handlers';
 import { api } from './api';
 import { datastore } from './datastore';
 
@@ -23,11 +23,11 @@ export type DOMElements = {
 }
 
 // Validation
-const validation = {
-  isValidEmail(email: string): boolean {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  }
-};
+// const validation = {
+//   isValidEmail(email: string): boolean {
+//     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+//   }
+// };
 
 // Initialize
 async function initializePopup(elements: DOMElements) {
@@ -98,9 +98,11 @@ async function initializePopup(elements: DOMElements) {
 const popup_close_handler = async () => {
   try {
     // Perform any cleanup operations
-    await chrome.storage.local.set({ popup: {
-      is_open: false,
-    } });
+    await chrome.storage.local.set({
+      popup: {
+        is_open: false,
+      }
+    });
     // Other cleanup tasks...
   } catch (error) {
     console.error('Error during popup cleanup:', error);

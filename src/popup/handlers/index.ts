@@ -39,14 +39,18 @@ export const handlers = {
         }
     },
 
-    async handleRefresh(elements: DOMElements) {
+    async refresh_click_handler(elements: DOMElements) {
         try {
+            ui.hideAllScreens(elements);
+            ui.showElement(elements.loadingScreen);
             const { confirmationData } = await chrome.storage.local.get(['confirmationData']);
             const list_nostr_account_response = await api.get_list_nostr_account({ access_token: confirmationData.access_token }, { endpoint: 'https://t-api.nextblock.app/nostr-account' });
 
             await datastore.set_list_nostr_account_response({ list_nostr_account_response });
         } catch (error) {
             console.error('Refresh error:', error);
+        } finally {
+            ui.hideElement(elements.loadingScreen);
         }
     }
 };

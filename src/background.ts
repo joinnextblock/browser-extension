@@ -1,6 +1,8 @@
 import { SimplePool } from 'nostr-tools';
+import { api } from './popup/api';
+import { datastore } from './popup/datastore';
 
-const RELAY = 'wss://t-relay.nextblock.app';
+// const RELAY = 'wss://t-relay.nextblock.app';
 
 (async () => {
   console.log(process.env);
@@ -52,53 +54,41 @@ const chrome_runtime_on_installed_handler = () => {
   console.log('Background script initialized');
 }
 
-const chrome_storage_on_changed_handler = async (changes: any, namespace: any) => {
+const chrome_storage_on_changed_handler = async (changes: { [key: string]: chrome.storage.StorageChange }, namespace: string) => {
   console.log('changes', changes)
   switch (namespace) {
     case 'local': {
-      // Handler changes to confirmationData
-      if (changes.confirmationData) {
-        console.log('changes.confirmationData', changes.confirmationData)
+      // Handle changes to confirmationData
+      if (changes.post_login_confirmation_response) {
+        console.log('changes.post_login_confirmation_response', changes.confirmationData)
 
-        await chrome.storage.local.remove('nostrAccounts');
-        if (changes.confirmationData.newValue.access_token) {
+        await chrome.storage.local.remove('list_nostr_account_response');
+        if (changes.post_login_confirmation_response.newValue.data.access_token) {
           try {
-            const { access_token } = changes.confirmationData.newValue;
+            const { data: { access_token } } = changes.confirmationData.newValue;
 
-            const response = await fetch('https://t-api.nextblock.app/nostr-account', {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-                // Include any necessary auth headers from confirmationData
-                'x-nextblock-authorization': access_token // adjust according to your token structure
-              }
-            });
+            const list_nostr_account_response = await api.get_list_nostr_account({ access_token }, { endpoint: 'https://t-api.nextblock.app/nostr-account' });
 
-            if (!response.ok) {
-              throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            console.log('Nostr accounts response:', list_nostr_account_response);
 
-            const { data: list_nostr_account, metadata } = await response.json();
-            console.log('Nostr accounts response:', list_nostr_account);
-
-            // Save the nostr accounts data to storage
-            await chrome.storage.local.set({ list_nostr_account });
-
+            await datastore.set_list_nostr_account_response({ list_nostr_account_response });
           } catch (error) {
             console.error('Error fetching nostr accounts:', error);
+          } finally {
+            console.log('handled changes', changes);
           }
         }
       }
       // Handler changes to nostrAccounts
-      if (changes.nostrAccounts) {
-        const authors = changes.nostrAccounts.newValue.map(({ nostr_account_id }: any) => nostr_account_id);
+      if (changes.list_nostr_account_response) {
+        const authors = changes.list_nostr_account_response.newValue.data.map(({ nostr_account_id }: { nostr_account_id: string }) => nostr_account_id);
         console.log('authors', authors);
         // TODO: query nextblock relay for nostr event kind 0 and 100002
         const pool = new SimplePool()
 
-        let relays = ['wss://t-relay.nextblock.app']
+        const relays = ['wss://t-relay.nextblock.app']
 
-        let h = pool.subscribeMany(
+        const subscription = pool.subscribeMany(
           [...relays],
           [
             {
@@ -113,7 +103,7 @@ const chrome_storage_on_changed_handler = async (changes: any, namespace: any) =
               console.log('event', event)
             },
             oneose() {
-              h.close()
+              subscription.close()
             }
           }
         )
