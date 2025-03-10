@@ -7,16 +7,6 @@ const logger = pino({
 
 const RELAY = 'wss://t-relay.nextblock.app';
 
-// Add this helper function
-function hexToUint8Array(hexString: string): Uint8Array {
-  hexString = hexString.replace('0x', '');
-  const bytes = new Uint8Array(hexString.length / 2);
-  for (let i = 0; i < hexString.length; i += 2) {
-    bytes[i / 2] = parseInt(hexString.slice(i, i + 2), 16);
-  }
-  return bytes;
-}
-
 (async () => {
   // let sk: Uint8Array<ArrayBufferLike>;
 
@@ -61,17 +51,17 @@ function hexToUint8Array(hexString: string): Uint8Array {
   }
   finally {
     console.log('Extension installed');
-    console.log('Extension installed');
   }
 })()
 
-// This will show up in the Service Worker console
-chrome.runtime.onInstalled.addListener(() => {
+const chrome_runtime_on_installed_handler = () => {
   console.log('Background script initialized');
-});
+}
 
-// Listen for changes in storage
-chrome.storage.onChanged.addListener(async (changes, namespace) => {
+const chrome_storage_on_changed_handler = async (changes: any, namespace: any) => {
+  if (namespace === 'local' && changes.nostrAccounts) {
+
+  }
   if (namespace === 'local' && changes.confirmationData) {
     console.log('changes.confirmationData', changes.confirmationData)
 
@@ -100,4 +90,9 @@ chrome.storage.onChanged.addListener(async (changes, namespace) => {
       console.error('Error fetching nostr accounts:', error);
     }
   }
-});
+}
+// This will show up in the Service Worker console
+chrome.runtime.onInstalled.addListener(chrome_runtime_on_installed_handler);
+
+// Listen for changes in storage
+chrome.storage.onChanged.addListener(chrome_storage_on_changed_handler);
