@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "@nostr-dev-kit/ndk": "^2.12.2",
+    "dotenv": "^16.4.7",
     "nostr-tools": "^2.10.4",
     "pino": "^9.6.0"
   }

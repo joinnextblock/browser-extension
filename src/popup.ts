@@ -1,10 +1,16 @@
 interface PopupState {
-  count: number;
+  list_nostr_account: object[];
+  nextblock_account: object | null;
 }
 
+/**
+ * Popup class    
+ * @description This class is responsible for the popup UI and functionality
+ */
 class Popup {
   private state: PopupState = {
-    count: 0
+    nextblock_account: null,
+    list_nostr_account: []
   };
 
   constructor() {
@@ -190,8 +196,12 @@ class Popup {
           if (confirmationForm) confirmationForm.style.display = 'none';
           loadingScreen.style.display = 'none';
 
-          // Clear existing accounts
-          accountsList.innerHTML = '';
+          // Clear existing accounts but preserve the refresh button
+          const refreshButton = document.getElementById('refresh');
+          accountsList.innerHTML = ''; // Clear the list
+          if (refreshButton) {
+            accountsList.appendChild(refreshButton); // Put the refresh button back
+          }
 
           // Add accounts to the list
           accounts.forEach(account => {
@@ -265,9 +275,36 @@ class Popup {
       // Listen for storage changes
       chrome.storage.onChanged.addListener((changes, namespace) => {
         if (namespace === 'local' && changes.nostrAccounts) {
-          const accounts = changes.nostrAccount.newValue || [];
-          
+          const accounts = changes.nostrAccounts.newValue || [];
+
           displayAccounts(accounts);
+        }
+      });
+
+      // Add refresh button click handler
+      const refreshButton = document.getElementById('refresh');
+      refreshButton?.addEventListener('click', async () => {
+        try {
+          const { confirmationData } = await chrome.storage.local.get(['confirmationData']);
+
+          const response = await fetch('https://t-api.nextblock.app/nostr-account', {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-nextblock-authorization': confirmationData.access_token
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+          await chrome.storage.local.set({ nostrAccounts: data });
+          console.log('Accounts refreshed');
+
+        } catch (error) {
+          console.error('Error refreshing accounts:', error);
         }
       });
     });

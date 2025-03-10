@@ -1,7 +1,11 @@
+const webpack = require('webpack');
 const path = require('path');
+const dotenv = require('dotenv');
+const env = dotenv.config().parsed;
 
+console.log(env);
 module.exports = {
-  mode: 'production',
+  mode: env.NEXTBLOCK_WEBPACK_MODE,
   devtool: 'source-map',
   entry: {
     popup: './src/popup.ts',
@@ -26,5 +30,10 @@ module.exports = {
   },
   optimization: {
     minimize: true
-  }
+  },
+  plugins: [
+    new webpack.DefinePlugin({
+      'process.env': JSON.stringify(env)
+    })
+  ],
 }; 

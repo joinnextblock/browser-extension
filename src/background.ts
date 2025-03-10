@@ -1,9 +1,4 @@
-import pino, { Logger } from 'pino';
-import { nip42, finalizeEvent, generateSecretKey, getPublicKey } from 'nostr-tools';
-const logger = pino({
-  name: 'browser-extension',
-  level: 'info'
-});
+import { SimplePool } from 'nostr-tools';
 
 const RELAY = 'wss://t-relay.nextblock.app';
 
@@ -47,7 +42,7 @@ const RELAY = 'wss://t-relay.nextblock.app';
     // }
   }
   catch (err) {
-    logger.error({ err })
+    console.error({ err })
   }
   finally {
     console.log('Extension installed');
@@ -59,36 +54,68 @@ const chrome_runtime_on_installed_handler = () => {
 }
 
 const chrome_storage_on_changed_handler = async (changes: any, namespace: any) => {
-  if (namespace === 'local' && changes.nostrAccounts) {
+  console.log('changes', changes)
+  if (namespace === 'local' && changes.nostrAccounts.newValue) {
+    let authors: string[] = [];
+    // const authors = changes.nostrAccounts.newValue.map(({ nostr_account_id }: any) => nostr_account_id);
 
+    // TODO: query nextblock relay for nostr event kind 0 and 100002
+    const pool = new SimplePool()
+
+    let relays = ['wss://t-relay.nextblock.app']
+
+    let h = pool.subscribeMany(
+      [...relays],
+      [
+        {
+          authors
+        },
+        {
+          kinds: [0, 100002]
+        }
+      ],
+      {
+        onevent(event) {
+          console.log('event', event)
+        },
+        oneose() {
+          h.close()
+        }
+      }
+    )
+
+    // TODO: save the events to the database
   }
   if (namespace === 'local' && changes.confirmationData) {
     console.log('changes.confirmationData', changes.confirmationData)
 
     await chrome.storage.local.remove('nostrAccounts');
-    try {
-      const response = await fetch('https://t-api.nextblock.app/nostr-account', {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          // Include any necessary auth headers from confirmationData
-          'x-nextblock-authorization': changes.confirmationData.newValue.access_token // adjust according to your token structure
+    if (changes.confirmationData.newValue.access_token) {
+      try {
+        const response = await fetch('https://t-api.nextblock.app/nostr-account', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            // Include any necessary auth headers from confirmationData
+            'x-nextblock-authorization': changes.confirmationData.newValue.access_token // adjust according to your token structure
+          }
+        });
+  
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+  
+        const data = await response.json();
+        console.log('Nostr accounts response:', data);
+  
+        // Save the nostr accounts data to storage
+        await chrome.storage.local.set({ nostrAccounts: data.data });
+  
+      } catch (error) {
+        console.error('Error fetching nostr accounts:', error);
       }
-
-      const data = await response.json();
-      console.log('Nostr accounts response:', data);
-
-      // Save the nostr accounts data to storage
-      await chrome.storage.local.set({ nostrAccounts: data.data });
-      
-    } catch (error) {
-      console.error('Error fetching nostr accounts:', error);
     }
+    
   }
 }
 // This will show up in the Service Worker console
