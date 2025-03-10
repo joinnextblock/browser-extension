@@ -1,5 +1,5 @@
 import { ui } from './ui';
-// import { handlers } from './handlers';
+import { handlers } from './handlers';
 import { api } from './api';
 import { datastore } from './datastore';
 
@@ -7,7 +7,7 @@ const DOM_CONTENT_LOADED = 'DOMContentLoaded';
 
 // Types and Interfaces
 export type DOMElements = {
-  loginButton: HTMLElement | null;
+  login_button: HTMLElement | null;
   loginForm: HTMLElement | null;
   confirmationForm: HTMLElement | null;
   submitButton: HTMLButtonElement | null;
@@ -23,64 +23,45 @@ export type DOMElements = {
 }
 
 // Validation
-// const validation = {
-//   isValidEmail(email: string): boolean {
-//     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-//   }
-// };
+const validation = {
+  isValidEmail(email: string): boolean {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+};
 
 // Initialize
 async function initializePopup(elements: DOMElements) {
   try {
-    ui.hideAllScreens(elements);
+    // ui.hideAllScreens(elements);
 
     const { list_nostr_account_response, post_login_confirmation_response } = await chrome.storage.local.get(['post_loging_confirmation_response', 'list_nostr_account_response']);
 
+    console.log('list_nostr_account_response', list_nostr_account_response);
     console.log('post_login_confirmation_response', post_login_confirmation_response);
 
-    if (post_login_confirmation_response) {
-      ui.showElement(elements.loadingScreen);
-      console.log('post_login_confirmation_response', post_login_confirmation_response);
-      if (list_nostr_account_response) {
-        ui.renderAccounts(elements, list_nostr_account_response);
-      } else {
-        const { data: { access_token } } = post_login_confirmation_response;
-        const list_nostr_account_response = await api.get_list_nostr_account({ access_token }, { endpoint: 'https://t-api.nextblock.app/nostr-account' });
-        await datastore.set_list_nostr_account_response({ list_nostr_account_response });
-        ui.renderAccounts(elements, list_nostr_account_response);
-      }
-      ui.hideElement(elements.loadingScreen);
-    }
+    initializeEventListeners(elements);
 
-    // if (post_login_confirmation_response && list_nostr_account_response) {
-    //   ui.renderAccounts(elements, post_login_confirmation_response);
-    // } else {
-    //   ui.showElement(elements.loginButton);
+    // if (post_login_confirmation_response) {
+    //   ui.showElement(elements.loadingScreen);
+    //   console.log('post_login_confirmation_response', post_login_confirmation_response);
+    //   if (list_nostr_account_response) {
+    //     ui.renderAccounts(elements, list_nostr_account_response);
+    //   } else {
+    //     const { data: { access_token } } = post_login_confirmation_response;
+    //     const list_nostr_account_response = await api.get_list_nostr_account({ access_token }, { endpoint: 'https://t-api.nextblock.app/nostr-account' });
+    //     await datastore.set_list_nostr_account_response({ list_nostr_account_response });
+    //     ui.renderAccounts(elements, list_nostr_account_response);
+    //   }
+    //   ui.hideElement(elements.loadingScreen);
     // }
 
-    // // Event Listeners
-    // elements.loginButton?.addEventListener('click', () => {
-    //   ui.hideElement(elements.loginButton);
-    //   ui.showElement(elements.loginForm);
-    // });
+    // // if (post_login_confirmation_response && list_nostr_account_response) {
+    // //   ui.renderAccounts(elements, post_login_confirmation_response);
+    // // } else {
+    // //   ui.showElement(elements.loginButton);
+    // // }
 
-    // elements.submitButton?.addEventListener('click', () => {
-    //   const email = elements.emailInput?.value;
-    //   if (email && validation.isValidEmail(email)) {
-    //     handlers.login_click_handler(elements, email);
-    //   }
-    // });
 
-    // elements.confirmButton?.addEventListener('click', () => {
-    //   const code = elements.confirmationInput?.value;
-    //   if (code) {
-    //     handlers.handleConfirmation(elements, code);
-    //   }
-    // });
-
-    // elements.refreshButton?.addEventListener('click', () => {
-    //   handlers.handleRefresh(elements);
-    // });
 
     // // Storage change listener
     // chrome.storage.onChanged.addListener((changes, namespace) => {
@@ -91,30 +72,46 @@ async function initializePopup(elements: DOMElements) {
 
   } catch (error) {
     console.error('Initialization error:', error);
+  } finally {
+    console.log('Popup initialized');
   }
 }
 
-// Add this to handle cleanup
-const popup_close_handler = async () => {
-  try {
-    // Perform any cleanup operations
-    await chrome.storage.local.set({
-      popup: {
-        is_open: false,
-      }
-    });
-    // Other cleanup tasks...
-  } catch (error) {
-    console.error('Error during popup cleanup:', error);
-  } finally {
-    console.log('Popup closed');
-  }
-};
+async function initializeEventListeners(elements: DOMElements) {
+  // Event Listeners
+  elements.login_button?.addEventListener('click', () => {
+    ui.hideElement(elements.login_button);
+    ui.showElement(elements.loginForm);
+  });
+
+  elements.submitButton?.addEventListener('click', () => {
+    const email = elements.emailInput?.value;
+    if (email && validation.isValidEmail(email)) {
+      handlers.login_click_handler(elements, email);
+    } else {
+      console.log('Invalid email');
+    }
+  });
+
+  elements.confirmButton?.addEventListener('click', () => {
+    const code = elements.confirmationInput?.value;
+    if (code) {
+      handlers.confirmation_click_handler(elements, code);
+    } else {
+      console.log('No code provided');
+    }
+  });
+
+  elements.refreshButton?.addEventListener('click', () => {
+    handlers.refresh_click_handler(elements);
+  });
+}
+
 
 // Entry Point
 document.addEventListener(DOM_CONTENT_LOADED, () => {
   const elements: DOMElements = {
-    loginButton: document.getElementById('login'),
+    login_button: document.getElementById('login'),
     loginForm: document.getElementById('login-form'),
     confirmationForm: document.getElementById('confirmation-form'),
     submitButton: document.getElementById('submit') as HTMLButtonElement,
@@ -130,7 +127,7 @@ document.addEventListener(DOM_CONTENT_LOADED, () => {
   };
 
   // Add unload listener
-  window.addEventListener('unload', popup_close_handler);
+  window.addEventListener('unload', handlers.popup_close_handler);
 
   initializePopup(elements);
 }); 

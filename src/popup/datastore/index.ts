@@ -1,6 +1,15 @@
 import { GetListNostrAccountResponse, PostLoginConfirmationResponse, PostLoginResponse } from "../api";
 
 export const datastore = {
+    async set_nextblock_account_email({ nextblock_account_email }: { nextblock_account_email: string }) {
+        await chrome.storage.local.set({ nextblock_account_email });
+    },
+
+    async get_nextblock_account_email(): Promise<{ nextblock_account_email: string }> {
+        const { nextblock_account_email = '' } = await chrome.storage.local.get(['nextblock_account_email']);
+        return { nextblock_account_email }
+    },
+
     async get_list_nostr_account_response(): Promise<{ list_nostr_account_response: GetListNostrAccountResponse }> {
         const { list_nostr_account_response } = await chrome.storage.local.get(['list_nostr_account_response']);
         return { list_nostr_account_response };

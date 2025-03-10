@@ -11,7 +11,7 @@ export const ui = {
   },
 
   hideAllScreens(elements: DOMElements) {
-    this.hideElement(elements.loginButton);
+    this.hideElement(elements.login_button);
     this.hideElement(elements.loginForm);
     this.hideElement(elements.confirmationForm);
     this.hideElement(elements.loadingScreen);

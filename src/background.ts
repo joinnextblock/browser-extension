@@ -65,7 +65,7 @@ const chrome_storage_on_changed_handler = async (changes: { [key: string]: chrom
         await chrome.storage.local.remove('list_nostr_account_response');
         if (changes.post_login_confirmation_response.newValue.data.access_token) {
           try {
-            const { data: { access_token } } = changes.confirmationData.newValue;
+            const { data: { access_token } } = changes.post_login_confirmation_response.newValue;
 
             const list_nostr_account_response = await api.get_list_nostr_account({ access_token }, { endpoint: 'https://t-api.nextblock.app/nostr-account' });
 
@@ -82,7 +82,7 @@ const chrome_storage_on_changed_handler = async (changes: { [key: string]: chrom
       // Handler changes to nostrAccounts
       if (changes.list_nostr_account_response) {
         const authors = changes.list_nostr_account_response.newValue.data.map(({ nostr_account_id }: { nostr_account_id: string }) => nostr_account_id);
-        console.log('authors', authors);
+        console.log('authors', { authors });
         // TODO: query nextblock relay for nostr event kind 0 and 100002
         const pool = new SimplePool()
 
