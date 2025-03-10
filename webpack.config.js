@@ -7,7 +7,7 @@ module.exports = {
   mode: env.NEXTBLOCK_WEBPACK_MODE,
   devtool: 'source-map',
   entry: {
-    popup: './src/popup.ts',
+    popup: './src/popup/index.ts',
     background: './src/background.ts',
     content: './src/content.ts',
   },
