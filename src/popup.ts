@@ -12,7 +12,7 @@ class Popup {
   }
 
   private initialize(): void {
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       const loginButton = document.getElementById('login');
       const loginForm = document.getElementById('login-form');
       const confirmationForm = document.getElementById('confirmation-form');
@@ -20,6 +20,8 @@ class Popup {
       const emailInput = document.getElementById('email') as HTMLInputElement;
       const confirmButton = document.getElementById('confirm') as HTMLButtonElement;
       const confirmationInput = document.getElementById('confirmation-code') as HTMLInputElement;
+      const loadingScreen = document.getElementById('loading-screen');
+      const accountsList = document.getElementById('accounts-list');
 
       // Email validation function
       const isValidEmail = (email: string): boolean => {
@@ -32,7 +34,7 @@ class Popup {
         if (submitButton) {
           const isValid = isValidEmail(emailInput?.value || '');
           submitButton.disabled = !isValid;
-          
+
           // Update button styles based on state
           if (isValid) {
             submitButton.style.opacity = '1';
@@ -49,6 +51,14 @@ class Popup {
           loginForm.style.display = 'none';
           confirmationForm.style.display = 'block';
         }
+      };
+
+      const showLoadingScreen = () => {
+        if (loginButton) loginButton.style.display = 'none';
+        if (loginForm) loginForm.style.display = 'none';
+        if (confirmationForm) confirmationForm.style.display = 'none';
+        if (accountsList) accountsList.style.display = 'none';
+        if (loadingScreen) loadingScreen.style.display = 'block';
       };
 
       loginButton?.addEventListener('click', () => {
@@ -89,7 +99,7 @@ class Popup {
           console.log('API response:', data);
 
           // Save both response data and email to chrome.storage.local
-          await chrome.storage.local.set({ 
+          await chrome.storage.local.set({
             loginData: {
               ...data.data,
               email,
@@ -102,12 +112,12 @@ class Popup {
 
         } catch (error) {
           console.error('Submission error:', error);
-          
+
           submitButton.textContent = 'Error - Try Again';
           submitButton.disabled = false;
           submitButton.style.backgroundColor = '#ff3333';
           submitButton.style.color = '#ffffff';
-          
+
           setTimeout(() => {
             submitButton.textContent = 'Submit';
             submitButton.style.backgroundColor = 'transparent';
@@ -116,15 +126,6 @@ class Popup {
           }, 3000);
         }
       });
-
-      // Add this function to show loading screen
-      const showLoadingScreen = () => {
-        const loadingScreen = document.getElementById('loading-screen');
-        if (confirmationForm && loadingScreen) {
-          confirmationForm.style.display = 'none';
-          loadingScreen.style.display = 'block';
-        }
-      };
 
       // Update the confirmation button handler
       confirmButton?.addEventListener('click', async () => {
@@ -166,12 +167,12 @@ class Popup {
 
         } catch (error) {
           console.error('Confirmation error:', error);
-          
+
           confirmButton.textContent = 'Error - Try Again';
           confirmButton.disabled = false;
           confirmButton.style.backgroundColor = '#ff3333';
           confirmButton.style.color = '#ffffff';
-          
+
           setTimeout(() => {
             confirmButton.textContent = 'Confirm';
             confirmButton.style.backgroundColor = '#3300FF';
@@ -182,12 +183,11 @@ class Popup {
 
       // Add function to display accounts
       const displayAccounts = (accounts: any[]) => {
-        console.log(accounts)
-        const accountsList = document.getElementById('accounts-list');
-        const loadingScreen = document.getElementById('loading-screen');
-
         if (accountsList && loadingScreen) {
-          // Hide loading screen
+          // Hide all other screens
+          if (loginButton) loginButton.style.display = 'none';
+          if (loginForm) loginForm.style.display = 'none';
+          if (confirmationForm) confirmationForm.style.display = 'none';
           loadingScreen.style.display = 'none';
 
           // Clear existing accounts
@@ -198,8 +198,8 @@ class Popup {
             const accountElement = document.createElement('div');
             accountElement.className = 'account-item';
             accountElement.innerHTML = `
-              <div class="account-name">${account.nextblock_account_id || 'Account'}</div>
-              <div class="account-details">${account.nostr_account_id || ''}</div>
+              <div class="account-name">${account.name || 'Account'}</div>
+              <div class="account-details">${account.public_key || ''}</div>
             `;
             accountsList.appendChild(accountElement);
           });
@@ -209,19 +209,65 @@ class Popup {
         }
       };
 
+      // Check for existing confirmationData on load
+      const initializeView = async () => {
+        const { confirmationData, nostrAccounts } = await chrome.storage.local.get(['confirmationData', 'nostrAccounts']);
+
+        if (confirmationData) {
+          // If we have confirmation data but no nostr account, show loading
+          if (!nostrAccounts) {
+            showLoadingScreen();
+            // Fetch nostr accounts while loading screen is shown
+            try {
+              const response = await fetch('https://t-api.nextblock.app/nostr-account', {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'x-nextblock-authorization': confirmationData.access_token
+                }
+              });
+
+              if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+              }
+
+              const accountData = await response.json();
+
+              // Save accounts to storage
+              await chrome.storage.local.set({ nostrAccounts: accountData.data });
+
+              // Display the accounts
+              displayAccounts(accountData.data);
+            } catch (error) {
+              console.error('Error fetching nostr accounts:', error);
+              // Keep loading screen visible to indicate error state
+              if (loadingScreen) {
+                const loadingText = loadingScreen.querySelector('.loading-text');
+                if (loadingText) {
+                  loadingText.textContent = 'Error loading accounts. Please try again.';
+                }
+              }
+            }
+          }
+          // If we have both, show accounts
+          else if (nostrAccounts) {
+            displayAccounts(nostrAccounts);
+          }
+        } else {
+          // Show login button if no confirmation data
+          if (loginButton) loginButton.style.display = 'block';
+        }
+      };
+
+      // Initialize view on load
+      await initializeView();
+
       // Listen for storage changes
       chrome.storage.onChanged.addListener((changes, namespace) => {
-
         if (namespace === 'local' && changes.nostrAccounts) {
-          const accounts = changes.nostrAccounts.newValue || [];
+          const accounts = changes.nostrAccount.newValue || [];
+          
           displayAccounts(accounts);
-        }
-      });
-
-      // Check if accounts already exist in storage on popup open
-      chrome.storage.local.get(['nostrAccount'], (result) => {
-        if (result.nostrAccount?.data) {
-          displayAccounts(result.nostrAccount.data);
         }
       });
     });
