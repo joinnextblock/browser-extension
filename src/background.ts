@@ -60,10 +60,8 @@ const chrome_storage_on_changed_handler = async (changes: { [key: string]: chrom
     case 'local': {
       // Handle changes to confirmationData
       if (changes.post_login_confirmation_response) {
-        console.log('changes.post_login_confirmation_response', changes.confirmationData)
-
         await chrome.storage.local.remove('list_nostr_account_response');
-        if (changes.post_login_confirmation_response.newValue.data.access_token) {
+        if (changes.post_login_confirmation_response?.newValue.data.access_token) {
           try {
             const { data: { access_token } } = changes.post_login_confirmation_response.newValue;
 
@@ -80,7 +78,7 @@ const chrome_storage_on_changed_handler = async (changes: { [key: string]: chrom
         }
       }
       // Handler changes to nostrAccounts
-      if (changes.list_nostr_account_response) {
+      if (changes.list_nostr_account_response?.newValue?.data) {
         const authors = changes.list_nostr_account_response.newValue.data.map(({ nostr_account_id }: { nostr_account_id: string }) => nostr_account_id);
         console.log('authors', { authors });
         // TODO: query nextblock relay for nostr event kind 0 and 100002
@@ -104,6 +102,7 @@ const chrome_storage_on_changed_handler = async (changes: { [key: string]: chrom
             },
             oneose() {
               subscription.close()
+              console.log('subscription closed')
             }
           }
         )
