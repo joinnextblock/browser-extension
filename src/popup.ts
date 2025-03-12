@@ -23,14 +23,29 @@ const RELAYS_KEY = 'nostr_relays';
 
 // Handler to show status messages
 const showStatus = (message: string, isError = false) => {
-    statusElement.textContent = message;
-    statusElement.className = isError ? 'error' : 'success';
-    // For debug messages we'll keep them visible longer
-    const timeout = isError ? 10000 : 3000;
-    setTimeout(() => {
-        statusElement.textContent = '';
-        statusElement.className = '';
-    }, timeout);
+    // Log to console
+    if (isError) {
+        console.error(message);
+    } else {
+        console.log(message);
+    }
+
+    // Only update UI if statusElement exists
+    if (statusElement) {
+        statusElement.textContent = message;
+        statusElement.className = isError ? 'error' : 'success';
+        statusElement.style.display = 'block';
+
+        // For debug messages we'll keep them visible longer
+        const timeout = isError ? 10000 : 3000;
+        setTimeout(() => {
+            if (statusElement) {
+                statusElement.style.display = 'none';
+                statusElement.textContent = '';
+                statusElement.className = '';
+            }
+        }, timeout);
+    }
 };
 
 // Function to check if keys exist in local storage
@@ -234,7 +249,12 @@ const setupEventListeners = (): void => {
 
     // Show login form button
     showLoginButton.addEventListener('click', () => {
-        loginForm.style.display = loginForm.style.display === 'flex' ? 'none' : 'flex';
+        // Hide the buttons
+        createAccountButton.style.display = 'none';
+        showLoginButton.style.display = 'none';
+
+        // Show the login form
+        loginForm.style.display = 'flex';
     });
 
     // Login form submission

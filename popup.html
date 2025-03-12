@@ -126,23 +126,6 @@
       font-family: 'IBM Plex Sans', sans-serif;
     }
 
-    #status {
-      margin-top: 10px;
-      padding: 8px;
-      border-radius: 4px;
-      text-align: center;
-    }
-
-    .success {
-      background-color: #27ae60;
-      color: white;
-    }
-
-    .error {
-      background-color: #e74c3c;
-      color: white;
-    }
-
     #account-container {
       display: flex;
       flex-direction: column;
@@ -180,17 +163,34 @@
       margin-left: 0;
       width: 100%;
     }
+
+    #status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      text-align: center;
+      display: none;
+    }
+
+    .success {
+      background-color: #27ae60;
+      color: white;
+    }
+
+    .error {
+      background-color: #e74c3c;
+      color: white;
+    }
   </style>
 </head>
 
 <body>
-  <img src="logo-text.png" alt="nextblock" class="logo">
-  <p class="marketplace-text">nextblock: billboard</p>
+  <h1>nextblock: billboard</h1>
 
   <div id="account-container">
     <p>Welcome! You need to create an account or login to continue.</p>
-    <button id="create-account">Create New Account</button>
-    <button id="show-login">Login with Private Key</button>
+    <button id="create-account">Create Account</button>
+    <button id="show-login">Login</button>
 
     <form id="login-form">
       <input type="password" id="private-key-input" placeholder="Enter your private key (hex format)" required>
@@ -220,8 +220,6 @@
       </form>
     </div>
   </div>
-
-  <div id="status"></div>
 
   <script src="dist/popup.js"></script>
 </body>
