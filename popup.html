@@ -7,13 +7,14 @@
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500&display=swap" rel="stylesheet">
   <style>
     body {
-      width: 200px;
+      width: 300px;
       padding: 20px;
       display: flex;
       flex-direction: column;
       gap: 10px;
       background-color: #000000;
       color: #ffffff;
+      font-family: 'IBM Plex Sans', sans-serif;
     }
 
     .logo {
@@ -29,280 +30,147 @@
       margin-bottom: 20px;
     }
 
-    button,
-    input {
-      width: 100%;
-      padding: 10px;
+    .section {
+      margin-bottom: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      background-color: #111111;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #ffffff;
+    }
+
+    .pubkey-container {
+      display: flex;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    #public-key {
+      flex-grow: 1;
+      overflow-wrap: break-word;
+      word-wrap: break-word;
+      word-break: break-all;
+      font-size: 12px;
+      color: #aaaaaa;
+      padding: 8px;
+      background-color: #222222;
       border-radius: 4px;
-      font-size: 14px;
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-weight: 500;
-      box-sizing: border-box;
+      max-width: 220px;
     }
 
     button {
-      width: 100%;
-      padding: 10px;
-      cursor: pointer;
+      background-color: #3498db;
+      color: white;
       border: none;
       border-radius: 4px;
-      font-size: 14px;
-      background-color: #3300FF;
-      color: #ffffff;
-      transition: background-color 0.2s;
+      padding: 8px 12px;
+      margin-left: 8px;
+      cursor: pointer;
+      font-family: 'IBM Plex Sans', sans-serif;
     }
 
     button:hover {
-      background-color: #2900cc;
-      color: #ffffff;
-    }
-
-    input {
-      background-color: #ffffff;
-      border: none;
-      margin-bottom: 10px;
-    }
-
-    #login {
-      border-color: #2196F3;
-    }
-
-    #login:hover {
-      background-color: #2900cc;
-      color: #ffffff;
-    }
-
-    #submit {
-      border-color: #4CAF50;
-    }
-
-    #submit:hover {
-      background-color: #2900cc;
-      color: #ffffff;
-    }
-
-    #login-form {
-      display: none;
+      background-color: #2980b9;
     }
 
     button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed !important;
-      background-color: #3300FF !important;
-    }
-
-    button:disabled:hover {
-      background-color: transparent;
-      color: #ffffff;
-    }
-
-    #submit:disabled:hover {
-      background-color: transparent;
-      border-color: #4CAF50;
-      color: #ffffff;
-    }
-
-    #submit.loading {
-      background-color: #666666;
-      cursor: wait;
-    }
-
-    #submit.success {
-      background-color: #4CAF50;
-      color: #ffffff;
-    }
-
-    #submit.error {
-      background-color: #ff3333;
-      color: #ffffff;
-    }
-
-    #confirmation-form {
-      display: none;
-    }
-
-    .confirmation-text {
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-weight: 500;
-      color: #ffffff;
-      margin-bottom: 10px;
-    }
-
-    #confirm:hover {
-      background-color: #2900cc;
-    }
-
-    #loading-screen {
-      display: none;
-      text-align: center;
-    }
-
-    .loader {
-      width: 48px;
-      height: 48px;
-      border: 5px solid #FFF;
-      border-bottom-color: #3300FF;
-      border-radius: 50%;
-      display: inline-block;
-      box-sizing: border-box;
-      animation: rotation 1s linear infinite;
-      margin: 20px 0;
-    }
-
-    @keyframes rotation {
-      0% {
-        transform: rotate(0deg);
-      }
-
-      100% {
-        transform: rotate(360deg);
-      }
-    }
-
-    .loading-text {
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-weight: 500;
-      color: #ffffff;
-      margin-top: 10px;
-    }
-
-    #accounts-list {
-      display: none;
-      color: #ffffff;
-      font-family: 'IBM Plex Sans', sans-serif;
-    }
-
-    .account-item {
-      background-color: rgba(51, 0, 255, 0.1);
-      border: 1px solid #3300FF;
-      border-radius: 4px;
-      padding: 12px;
-      margin-bottom: 10px;
-    }
-
-    .account-name {
-      font-weight: 500;
-      margin-bottom: 4px;
-    }
-
-    .account-details {
-      font-size: 12px;
-      opacity: 0.8;
-    }
-
-    .refresh-button {
-      background-color: transparent;
-      border: 1px solid #3300FF;
-      padding: 8px;
-      margin-bottom: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .refresh-button svg {
-      width: 16px;
-      height: 16px;
-      fill: white;
-    }
-
-    .refresh-button.loading svg {
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      100% {
-        transform: rotate(360deg);
-      }
-    }
-
-    #refresh {
-      width: 100%;
-      padding: 10px;
-      cursor: pointer;
-      border: none;
-      border-radius: 4px;
-      font-size: 14px;
-      background-color: #3300FF;
-      color: #ffffff;
-      transition: background-color 0.2s;
-      font-family: 'IBM Plex Sans', sans-serif;
-      font-weight: 500;
-      margin-bottom: 12px;
-    }
-
-    #refresh:hover {
-      background-color: #2900cc;
-    }
-
-    #refresh:disabled {
-      opacity: 0.5;
+      background-color: #777777;
       cursor: not-allowed;
     }
 
-    #error-screen {
-      text-align: center;
-      padding: 20px;
-      color: #ffffff;
-      font-family: 'IBM Plex Sans', sans-serif;
+    #relays-list {
+      list-style-type: none;
+      padding: 0;
+      margin: 0;
     }
 
-    .error-message {
-      color: #ff3333;
-      margin-bottom: 16px;
-      font-size: 14px;
+    #relays-list li {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px;
+      margin-bottom: 5px;
+      background-color: #222222;
+      border-radius: 4px;
     }
 
-    .retry-button {
-      width: 100%;
+    .permissions {
+      background-color: #333333;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-size: 12px;
+      margin: 0 8px;
+    }
+
+    #add-relay-form {
+      display: none;
+      margin-top: 10px;
+      background-color: #222222;
       padding: 10px;
-      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    input {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
       border: none;
       border-radius: 4px;
-      font-size: 14px;
-      background-color: #3300FF;
-      color: #ffffff;
-      transition: background-color 0.2s;
+      background-color: #333333;
+      color: white;
       font-family: 'IBM Plex Sans', sans-serif;
-      font-weight: 500;
     }
 
-    .retry-button:hover {
-      background-color: #2900cc;
+    #status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .success {
+      background-color: #27ae60;
+      color: white;
+    }
+
+    .error {
+      background-color: #e74c3c;
+      color: white;
     }
   </style>
 </head>
 
 <body>
-  <img src="logo-text.png" alt="Logo" class="logo">
-  <span class="marketplace-text">BILLBOARD</span>
-  <button id="login">Login</button>
+  <img src="logo-text.png" alt="nextblock" class="logo">
+  <p class="marketplace-text">NIP-07 Browser Extension</p>
 
-  <div id="login-form">
-    <input type="email" id="email" placeholder="Enter your email">
-    <button id="submit">Submit</button>
+  <div class="section">
+    <div class="section-title">Your Public Key</div>
+    <div class="pubkey-container">
+      <div id="public-key">Loading...</div>
+      <button id="copy-pubkey" disabled>Copy</button>
+    </div>
   </div>
 
-  <div id="confirmation-form">
-    <input type="text" id="confirmation-code" placeholder="Enter confirmation code">
-    <button id="confirm">Confirm</button>
+  <div class="section">
+    <div class="section-title">Manage Relays</div>
+    <ul id="relays-list">
+      <li>Loading relays...</li>
+    </ul>
+    <button id="add-relay">Add Relay</button>
+
+    <form id="add-relay-form">
+      <input type="text" id="relay-url" placeholder="wss://relay.example.com" required>
+      <button type="submit">Save</button>
+    </form>
   </div>
 
-  <div id="loading-screen">
-    <div class="loader"></div>
-    <!-- <div class="loading-text">Setting up your account...</div> -->
-  </div>
-
-  <div id="accounts-list">
-    <button id="refresh">Refresh</button>
-    <!-- accounts will be listed here -->
-  </div>
-
-  <div id="error-screen" style="display: none;">
-    <div class="error-message"></div>
-    <button id="error-retry" class="retry-button">Try Again</button>
-  </div>
+  <div id="status"></div>
 
   <script src="dist/popup.js"></script>
 </body>

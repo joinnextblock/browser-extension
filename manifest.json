@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Nexblock Extension",
+  "name": "nextblock: billboard",
   "version": "1.0",
   "description": "Participate in the attn marketplace while you browse the web",
   "permissions": [
@@ -17,14 +17,30 @@
       "128": "icons/icon128.png"
     }
   },
-  "content_scripts": [{
-    "matches": ["<all_urls>"],
-    "js": ["dist/content.js"]
-  }],
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "dist/content.js"
+      ]
+    }
+  ],
   "background": {
     "service_worker": "dist/background.js"
   },
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
-  }
-} 
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "dist/nostr.js"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

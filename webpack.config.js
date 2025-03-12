@@ -7,9 +7,10 @@ module.exports = {
   mode: env.NEXTBLOCK_WEBPACK_MODE,
   devtool: 'source-map',
   entry: {
-    popup: './src/popup/index.ts',
-    background: './src/background.ts',
+    popup: './src/popup.ts',
     content: './src/content.ts',
+    background: './src/background.ts',
+    nostr: './src/nostr.ts'
   },
   output: {
     path: path.resolve(__dirname, 'dist'),
