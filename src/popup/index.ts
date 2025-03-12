@@ -1,6 +1,6 @@
 import { ui } from './ui';
 import { handlers } from './handlers';
-import { api } from './api';
+import { api, GetListNostrAccountResponse, NostrAccountRecord, PostLoginResponse } from './api';
 import { datastore } from './datastore';
 
 const DOM_CONTENT_LOADED = 'DOMContentLoaded';
@@ -22,6 +22,54 @@ export type DOMElements = {
   errorRetry: HTMLElement | null;
 }
 
+export type StorageChanges = {
+  list_nostr_account_response?: {
+    newValue?: GetListNostrAccountResponse
+    oldValue?: GetListNostrAccountResponse
+  };
+  post_login_confirmation_response?: {
+    newValue?: {
+      data: {
+        access_token: string;
+      }
+    };
+    oldValue?: {
+      data: {
+        access_token: string;
+      }
+    };
+  };
+  post_login_response?: {
+    newValue?: PostLoginResponse;
+    oldValue?: PostLoginResponse;
+  };
+}
+
+const initializeStorageChangeHandler = (elements: DOMElements) => {
+  chrome.storage.onChanged.addListener((changes: StorageChanges, namespace) => {
+    if (namespace === 'local') {
+      console.log('Storage changes:', changes);
+
+      // Handle list_nostr_account_response updates
+      if (changes.list_nostr_account_response?.newValue) {
+        ui.renderAccounts(elements, changes.list_nostr_account_response.newValue);
+      }
+
+      // Handle confirmationData updates
+      if (changes.post_login_confirmation_response?.newValue) {
+        ui.hideAllScreens(elements);
+        ui.showElement(elements.loadingScreen);
+      }
+
+      // Handle loginData updates
+      if (changes.post_login_response?.newValue) {
+        ui.hideAllScreens(elements);
+        ui.showElement(elements.confirmationForm);
+      }
+    }
+  });
+};
+
 // Validation
 const validation = {
   isValidEmail(email: string): boolean {
@@ -32,43 +80,14 @@ const validation = {
 // Initialize
 async function initializePopup(elements: DOMElements) {
   try {
-    // ui.hideAllScreens(elements);
+    const { list_nostr_account_response } = await datastore.get_list_nostr_account_response();
+    const { list_nostr_event_response } = await datastore.get_list_nostr_event_response();
+    if (list_nostr_account_response) {
+      ui.renderAccounts(elements, list_nostr_account_response);
+    } else {
+      ui.showElement(elements.login_button);
+    }
 
-    const { list_nostr_account_response, post_login_confirmation_response } = await chrome.storage.local.get(['post_loging_confirmation_response', 'list_nostr_account_response']);
-
-    console.log('list_nostr_account_response', list_nostr_account_response);
-    console.log('post_login_confirmation_response', post_login_confirmation_response);
-
-    initializeEventListeners(elements);
-
-    // if (post_login_confirmation_response) {
-    //   ui.showElement(elements.loadingScreen);
-    //   console.log('post_login_confirmation_response', post_login_confirmation_response);
-    //   if (list_nostr_account_response) {
-    //     ui.renderAccounts(elements, list_nostr_account_response);
-    //   } else {
-    //     const { data: { access_token } } = post_login_confirmation_response;
-    //     const list_nostr_account_response = await api.get_list_nostr_account({ access_token }, { endpoint: 'https://t-api.nextblock.app/nostr-account' });
-    //     await datastore.set_list_nostr_account_response({ list_nostr_account_response });
-    //     ui.renderAccounts(elements, list_nostr_account_response);
-    //   }
-    //   ui.hideElement(elements.loadingScreen);
-    // }
-
-    // // if (post_login_confirmation_response && list_nostr_account_response) {
-    // //   ui.renderAccounts(elements, post_login_confirmation_response);
-    // // } else {
-    // //   ui.showElement(elements.loginButton);
-    // // }
-
-
-
-    // // Storage change listener
-    // chrome.storage.onChanged.addListener((changes, namespace) => {
-    //   if (namespace === 'local' && changes.nostrAccounts?.newValue?.data) {
-    //     ui.renderAccounts(elements, changes.nostrAccounts.newValue.data);
-    //   }
-    // });
 
   } catch (error) {
     console.error('Initialization error:', error);
@@ -130,4 +149,6 @@ document.addEventListener(DOM_CONTENT_LOADED, () => {
   window.addEventListener('unload', handlers.popup_close_handler);
 
   initializePopup(elements);
+  initializeEventListeners(elements);
+  initializeStorageChangeHandler(elements);
 }); 

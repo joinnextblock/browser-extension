@@ -5,42 +5,9 @@ import { datastore } from './popup/datastore';
 // const RELAY = 'wss://t-relay.nextblock.app';
 
 (async () => {
-  console.log(process.env);
+
   try {
-    // const result = await chrome.storage.local.get('sk');
-    // sk = result.sk;
 
-    // if (!sk) {
-    //   sk = generateSecretKey() // `sk` is a Uint8Array
-    //   await chrome.storage.local.set({ sk});
-    // }
-
-    // let pk = getPublicKey(sk) // `pk` is a hex string
-
-    // const web_socket = new WebSocket(RELAY);
-
-    // web_socket.onmessage = (event) => {
-    //   const data = JSON.parse(event.data);
-    //   const [ACTION] = data;
-    //   switch (ACTION) {
-    //     case 'AUTH': {
-    //       const [_, challenge] = data;
-    //       const event = nip42.makeAuthEvent(RELAY, challenge);
-    //       // const finalized_event = finalizeEvent(event, hexToUint8Array('684483f418b14dc722151f17c18b11e4419df8008b562dc649907752719bc0fc'));
-    //       console.log({ event });
-
-    //       // web_socket.send(JSON.stringify([ACTION, finalized_event]));
-    //       break;
-    //     }
-    //     default: {
-    //       break;
-    //     }
-    //   }
-    // }
-
-    // web_socket.onopen = () => {
-    //   console.log('connected to relay')
-    // }
   }
   catch (err) {
     console.error({ err })
@@ -115,6 +82,46 @@ const chrome_storage_on_changed_handler = async (changes: { [key: string]: chrom
     }
   }
 }
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  const handleMessage = async () => {
+    try {
+      switch (message.type) {
+        case 'POST_LOGIN': {
+          await datastore.set_nextblock_account_email({ nextblock_account_email: message.email });
+          const post_login_response = await api.post_login({ email: message.email }, { endpoint: 'https://t-api.nextblock.app/login' });
+
+          await chrome.storage.local.set({ post_login_response });
+          sendResponse({ success: true, data: post_login_response });
+          break;
+        }
+        case 'POST_LOGIN_CONFIRMATION': {
+          const { nextblock_account_email } = await datastore.get_nextblock_account_email();
+          const { post_login_response } = await datastore.get_post_login_response();
+          const post_login_confirmation_response = await api.post_login_confirmation({ code: message.code, email: nextblock_account_email, session: post_login_response.data.session }, { endpoint: 'https://t-api.nextblock.app/login-confirmation' });
+
+          await chrome.storage.local.set({ post_login_confirmation_response });
+          sendResponse({ success: true, data: post_login_confirmation_response });
+          break;
+        }
+        case 'GET_LIST_NOSTR_ACCOUNT': {
+          const { post_login_confirmation_response } = await datastore.get_post_login_confirmation_response();
+          const list_nostr_account_response = await api.get_list_nostr_account({ access_token: post_login_confirmation_response.data.access_token }, { endpoint: 'https://t-api.nextblock.app/nostr-account' });
+          await datastore.set_list_nostr_account_response({ list_nostr_account_response });
+          sendResponse({ success: true, data: list_nostr_account_response });
+          break;
+        }
+      }
+    } catch (error) {
+      console.error('API error:', error);
+      sendResponse({ success: false, error: error instanceof Error ? error.message : 'An unknown error occurred' });
+    }
+  };
+
+  handleMessage();
+  return true; // Keep the message channel open for async response
+});
+
 // This will show up in the Service Worker console
 chrome.runtime.onInstalled.addListener(chrome_runtime_on_installed_handler);
 
