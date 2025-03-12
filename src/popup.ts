@@ -9,6 +9,14 @@ const addRelayForm = document.getElementById('add-relay-form') as HTMLFormElemen
 const relayInput = document.getElementById('relay-url') as HTMLInputElement;
 const statusElement = document.getElementById('status') as HTMLDivElement;
 
+// New account elements
+const accountContainer = document.getElementById('account-container') as HTMLDivElement;
+const mainContainer = document.getElementById('main-container') as HTMLDivElement;
+const createAccountButton = document.getElementById('create-account') as HTMLButtonElement;
+const showLoginButton = document.getElementById('show-login') as HTMLButtonElement;
+const loginForm = document.getElementById('login-form') as HTMLFormElement;
+const privateKeyInput = document.getElementById('private-key-input') as HTMLInputElement;
+
 // Storage keys
 const STORAGE_KEY = 'nostr_keys';
 const RELAYS_KEY = 'nostr_relays';
@@ -17,10 +25,87 @@ const RELAYS_KEY = 'nostr_relays';
 const showStatus = (message: string, isError = false) => {
     statusElement.textContent = message;
     statusElement.className = isError ? 'error' : 'success';
+    // For debug messages we'll keep them visible longer
+    const timeout = isError ? 10000 : 3000;
     setTimeout(() => {
         statusElement.textContent = '';
         statusElement.className = '';
-    }, 3000);
+    }, timeout);
+};
+
+// Function to check if keys exist in local storage
+const checkKeysExist = async (): Promise<boolean> => {
+    try {
+        // Direct check in local storage first
+        const result = await chrome.storage.local.get(STORAGE_KEY);
+        if (!result[STORAGE_KEY]) {
+            showStatus("No keys found in storage", true);
+            return false;
+        }
+
+        // Double check with the background script
+        const response = await chrome.runtime.sendMessage({ type: 'nostr_getPublicKey' });
+        if (response.error) {
+            showStatus(`Error from getPublicKey: ${response.error}`, true);
+            return false;
+        }
+
+        return true;
+    } catch (error) {
+        if (error instanceof Error) {
+            showStatus(`Error checking keys: ${error.message}`, true);
+        }
+        return false;
+    }
+};
+
+// Function to create a new account 
+const createAccount = async (): Promise<void> => {
+    try {
+        const response = await chrome.runtime.sendMessage({ type: 'nostr_createKeys' });
+
+        if (response.error) {
+            throw new Error(response.error);
+        }
+
+        showStatus('Account created successfully!');
+        // Switch to main UI
+        accountContainer.style.display = 'none';
+        mainContainer.style.display = 'block';
+
+        // Refresh the UI
+        await initPopup();
+    } catch (error) {
+        if (error instanceof Error) {
+            showStatus(`Error creating account: ${error.message}`, true);
+        }
+    }
+};
+
+// Function to import a private key
+const importPrivateKey = async (privateKeyHex: string): Promise<void> => {
+    try {
+        // Basic validation
+        if (!privateKeyHex || !/^[0-9a-fA-F]{64}$/.test(privateKeyHex)) {
+            throw new Error('Invalid private key format. Must be 64 hex characters.');
+        }
+
+        // Store the private key (would need to add a new message type in background.ts)
+        await chrome.storage.local.set({ [STORAGE_KEY]: privateKeyHex });
+
+        showStatus('Account imported successfully!');
+        // Switch to main UI
+        accountContainer.style.display = 'none';
+        mainContainer.style.display = 'block';
+        loginForm.style.display = 'none';
+
+        // Refresh the UI
+        await initPopup();
+    } catch (error) {
+        if (error instanceof Error) {
+            showStatus(`Error importing account: ${error.message}`, true);
+        }
+    }
 };
 
 // Function to get the user's public key
@@ -103,18 +188,63 @@ const renderRelays = async (): Promise<void> => {
 
 // Initialize the popup
 const initPopup = async (): Promise<void> => {
-    // Display public key
-    const pubkey = await getPublicKey();
-    if (pubkey) {
-        publicKeyElement.textContent = pubkey;
-        copyButton.disabled = false;
-    } else {
-        publicKeyElement.textContent = 'Error retrieving public key';
-        copyButton.disabled = true;
-    }
+    try {
+        // Check if keys exist and display appropriate UI
+        const keysExist = await checkKeysExist();
 
-    // Render relays
-    await renderRelays();
+        showStatus(`Keys exist: ${keysExist}`, false);
+
+        if (!keysExist) {
+            // Show account creation UI
+            accountContainer.style.display = 'flex';
+            mainContainer.style.display = 'none';
+            return;
+        } else {
+            // Show main UI
+            accountContainer.style.display = 'none';
+            mainContainer.style.display = 'block';
+        }
+
+        // Display public key
+        const pubkey = await getPublicKey();
+        if (pubkey) {
+            publicKeyElement.textContent = pubkey;
+            copyButton.disabled = false;
+        } else {
+            publicKeyElement.textContent = 'Error retrieving public key';
+            copyButton.disabled = true;
+        }
+
+        // Render relays
+        await renderRelays();
+    } catch (error) {
+        if (error instanceof Error) {
+            showStatus(`Error in initPopup: ${error.message}`, true);
+        }
+        // If there's an error, default to showing the account container
+        accountContainer.style.display = 'flex';
+        mainContainer.style.display = 'none';
+    }
+};
+
+// Set up event listeners
+const setupEventListeners = (): void => {
+    // Create account button
+    createAccountButton.addEventListener('click', createAccount);
+
+    // Show login form button
+    showLoginButton.addEventListener('click', () => {
+        loginForm.style.display = loginForm.style.display === 'flex' ? 'none' : 'flex';
+    });
+
+    // Login form submission
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const privateKey = privateKeyInput.value.trim();
+        await importPrivateKey(privateKey);
+        // Clear input for security
+        privateKeyInput.value = '';
+    });
 
     // Set up copy button
     copyButton.addEventListener('click', () => {
@@ -174,5 +304,12 @@ const initPopup = async (): Promise<void> => {
     });
 };
 
-// Initialize the popup when the DOM is loaded
-document.addEventListener('DOMContentLoaded', initPopup);
+// Initialize the popup and set up event listeners when the DOM is loaded
+document.addEventListener('DOMContentLoaded', async () => {
+    // Directly show the account container at startup for debugging
+    accountContainer.style.display = 'flex';
+    mainContainer.style.display = 'none';
+
+    setupEventListeners();
+    await initPopup();
+});

@@ -2,7 +2,7 @@
 <html>
 
 <head>
-  <title>Nostr Extension</title>
+  <title>nextblock: billboard</title>
   <!-- Import IBM Plex Sans font -->
   <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@500&display=swap" rel="stylesheet">
   <style>
@@ -142,32 +142,83 @@
       background-color: #e74c3c;
       color: white;
     }
+
+    #account-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      margin-top: 20px;
+    }
+
+    #account-container button {
+      width: 80%;
+      padding: 12px;
+      margin: 0;
+      font-size: 16px;
+    }
+
+    #main-container {
+      display: none;
+    }
+
+    #login-form {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+      background-color: #111111;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+
+    #login-form input {
+      width: 100%;
+    }
+
+    #login-form button {
+      margin-left: 0;
+      width: 100%;
+    }
   </style>
 </head>
 
 <body>
   <img src="logo-text.png" alt="nextblock" class="logo">
-  <p class="marketplace-text">NIP-07 Browser Extension</p>
+  <p class="marketplace-text">nextblock: billboard</p>
 
-  <div class="section">
-    <div class="section-title">Your Public Key</div>
-    <div class="pubkey-container">
-      <div id="public-key">Loading...</div>
-      <button id="copy-pubkey" disabled>Copy</button>
-    </div>
+  <div id="account-container">
+    <p>Welcome! You need to create an account or login to continue.</p>
+    <button id="create-account">Create New Account</button>
+    <button id="show-login">Login with Private Key</button>
+
+    <form id="login-form">
+      <input type="password" id="private-key-input" placeholder="Enter your private key (hex format)" required>
+      <button type="submit">Login</button>
+    </form>
   </div>
 
-  <div class="section">
-    <div class="section-title">Manage Relays</div>
-    <ul id="relays-list">
-      <li>Loading relays...</li>
-    </ul>
-    <button id="add-relay">Add Relay</button>
+  <div id="main-container">
+    <div class="section">
+      <div class="section-title">Your Public Key</div>
+      <div class="pubkey-container">
+        <div id="public-key">Loading...</div>
+        <button id="copy-pubkey" disabled>Copy</button>
+      </div>
+    </div>
 
-    <form id="add-relay-form">
-      <input type="text" id="relay-url" placeholder="wss://relay.example.com" required>
-      <button type="submit">Save</button>
-    </form>
+    <div class="section">
+      <div class="section-title">Manage Relays</div>
+      <ul id="relays-list">
+        <li>Loading relays...</li>
+      </ul>
+      <button id="add-relay">Add Relay</button>
+
+      <form id="add-relay-form">
+        <input type="text" id="relay-url" placeholder="wss://relay.example.com" required>
+        <button type="submit">Save</button>
+      </form>
+    </div>
   </div>
 
   <div id="status"></div>

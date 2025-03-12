@@ -27,8 +27,8 @@ interface NostrEvent {
 const STORAGE_KEY = 'nostr_keys';
 const RELAYS_KEY = 'nostr_relays';
 
-// Initialize or get the private key
-async function getOrCreateKeys(): Promise<{ privateKey: Uint8Array; publicKey: string }> {
+// Get the private key if it exists
+async function getKeys(): Promise<{ privateKey: Uint8Array; publicKey: string } | null> {
     const result = await chrome.storage.local.get(STORAGE_KEY);
 
     if (result[STORAGE_KEY]) {
@@ -38,7 +38,13 @@ async function getOrCreateKeys(): Promise<{ privateKey: Uint8Array; publicKey: s
         return { privateKey, publicKey };
     }
 
-    // If no private key exists, create one
+    // No private key exists
+    return null;
+}
+
+// Create a new private key and store it
+async function createKeys(): Promise<{ privateKey: Uint8Array; publicKey: string }> {
+    // Create a new private key
     const privateKey = generateSecretKey();
     const publicKey = getPublicKey(privateKey);
 
@@ -88,8 +94,11 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
     // Handle different NIP-07 operations
     switch (request.type) {
         case 'nostr_getPublicKey':
-            const { publicKey } = await getOrCreateKeys();
-            return { data: publicKey };
+            const keys = await getKeys();
+            if (!keys) {
+                throw new Error('No private key found. Please create one first.');
+            }
+            return { data: keys.publicKey };
 
         case 'nostr_signEvent':
             return await signEvent(request.params.event);
@@ -104,6 +113,11 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
         case 'nostr_nip04_decrypt':
             return await decryptMessage(request.params.pubkey, request.params.ciphertext);
 
+        case 'nostr_createKeys':
+            // Only create keys if explicitly requested
+            const newKeys = await createKeys();
+            return { data: newKeys.publicKey };
+
         default:
             throw new Error(`Unsupported method: ${request.type}`);
     }
@@ -112,7 +126,12 @@ async function handleMessage(request: any, sender: chrome.runtime.MessageSender)
 // Sign a Nostr event
 async function signEvent(event: NostrEvent): Promise<{ data: NostrEvent }> {
     try {
-        const { privateKey, publicKey } = await getOrCreateKeys();
+        const keys = await getKeys();
+        if (!keys) {
+            throw new Error('No private key found. Please create one first.');
+        }
+
+        const { privateKey, publicKey } = keys;
 
         // Create a clean event object with required fields
         const cleanEvent: NostrEvent = {
@@ -139,8 +158,12 @@ async function signEvent(event: NostrEvent): Promise<{ data: NostrEvent }> {
 // Encrypt a message using NIP-04
 async function encryptMessage(pubkey: string, plaintext: string): Promise<{ data: string }> {
     try {
-        const { privateKey } = await getOrCreateKeys();
-        const encrypted = await nip04.encrypt(privateKey, pubkey, plaintext);
+        const keys = await getKeys();
+        if (!keys) {
+            throw new Error('No private key found. Please create one first.');
+        }
+
+        const encrypted = await nip04.encrypt(keys.privateKey, pubkey, plaintext);
         return { data: encrypted };
     } catch (error) {
         if (error instanceof Error) {
@@ -153,8 +176,12 @@ async function encryptMessage(pubkey: string, plaintext: string): Promise<{ data
 // Decrypt a message using NIP-04
 async function decryptMessage(pubkey: string, ciphertext: string): Promise<{ data: string }> {
     try {
-        const { privateKey } = await getOrCreateKeys();
-        const decrypted = await nip04.decrypt(privateKey, pubkey, ciphertext);
+        const keys = await getKeys();
+        if (!keys) {
+            throw new Error('No private key found. Please create one first.');
+        }
+
+        const decrypted = await nip04.decrypt(keys.privateKey, pubkey, ciphertext);
         return { data: decrypted };
     } catch (error) {
         if (error instanceof Error) {
