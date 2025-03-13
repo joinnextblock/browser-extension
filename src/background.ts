@@ -1,5 +1,5 @@
 // background.ts - Handles Nostr operations
-import { generateSecretKey, getPublicKey as nostrGetPublicKey, getEventHash, finalizeEvent, nip04, SimplePool, type Event, type Filter } from 'nostr-tools';
+import { generateSecretKey, getPublicKey as nostrGetPublicKey, finalizeEvent, nip04, SimplePool, type Event, type Filter } from 'nostr-tools';
 
 // Convert hex to Uint8Array
 function hexToBytes(hex: string): Uint8Array {

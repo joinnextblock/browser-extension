@@ -57,6 +57,12 @@ const sendMessage = async (type: string, params: any = {}): Promise<any> => {
             },
             '*'
         );
+
+        // Add a timeout to prevent hanging promises
+        setTimeout(() => {
+            window.removeEventListener('message', listener);
+            reject(new Error(`Request timed out: ${type}`));
+        }, 10000); // 10 second timeout
     });
 };
 
@@ -86,7 +92,13 @@ const nostr: Nostr = {
 };
 
 // Inject the nostr object into the window
-(window as any).nostr = nostr;
+try {
+    console.log('Injecting window.nostr object...');
+    (window as any).nostr = nostr;
+    console.log('window.nostr object successfully injected!');
 
-// Let the content script know that the nostr object has been injected
-window.dispatchEvent(new Event('nostr:injected')); 
+    // Let the content script know that the nostr object has been injected
+    window.dispatchEvent(new Event('nostr:injected'));
+} catch (error) {
+    console.error('Failed to inject window.nostr object:', error);
+} 
