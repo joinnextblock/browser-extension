@@ -1,5 +1,5 @@
 // background.ts - Handles Nostr operations
-import { generateSecretKey, getPublicKey, getEventHash, finalizeEvent, nip04 } from 'nostr-tools';
+import { generateSecretKey, getPublicKey as nostrGetPublicKey, getEventHash, finalizeEvent, nip04, SimplePool, type Event, type Filter } from 'nostr-tools';
 
 // Convert hex to Uint8Array
 function hexToBytes(hex: string): Uint8Array {
@@ -27,6 +27,10 @@ interface NostrEvent {
 const STORAGE_KEY = 'nostr_keys';
 const RELAYS_KEY = 'nostr_relays';
 
+// Global pool for nostr connections
+let pool: SimplePool | null = null;
+const activeRelays: Set<string> = new Set();
+
 // Get the private key if it exists
 async function getKeys(): Promise<{ privateKey: Uint8Array; publicKey: string } | null> {
     const result = await chrome.storage.local.get(STORAGE_KEY);
@@ -34,7 +38,7 @@ async function getKeys(): Promise<{ privateKey: Uint8Array; publicKey: string } 
     if (result[STORAGE_KEY]) {
         // Convert stored hex string back to Uint8Array
         const privateKey = hexToBytes(result[STORAGE_KEY]);
-        const publicKey = getPublicKey(privateKey);
+        const publicKey = nostrGetPublicKey(privateKey);
         return { privateKey, publicKey };
     }
 
@@ -46,10 +50,11 @@ async function getKeys(): Promise<{ privateKey: Uint8Array; publicKey: string } 
 async function createKeys(): Promise<{ privateKey: Uint8Array; publicKey: string }> {
     // Create a new private key
     const privateKey = generateSecretKey();
-    const publicKey = getPublicKey(privateKey);
+    const publicKey = nostrGetPublicKey(privateKey);
 
     // Store private key as hex string
-    await chrome.storage.local.set({ [STORAGE_KEY]: bytesToHex(privateKey) });
+    const hexKey = bytesToHex(privateKey);
+    await chrome.storage.local.set({ [STORAGE_KEY]: hexKey });
     return { privateKey, publicKey };
 }
 
@@ -74,6 +79,27 @@ async function getOrCreateRelays(): Promise<Record<string, { read: boolean; writ
 
 // Handle messages from the content script
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('Background received message:', request.type);
+
+    if (request.type === 'nostr_connectToRelay') {
+        // Handle the connection request
+        connectToRelay(request.relay)
+            .then(result => {
+                console.log('Connection result:', result);
+                sendResponse(result);
+            })
+            .catch(error => {
+                console.error('Connection error:', error);
+                sendResponse({
+                    success: false,
+                    error: error.message || 'Unknown error occurred'
+                });
+            });
+
+        // Return true to indicate we will respond asynchronously
+        return true;
+    }
+
     // Make sure to return true to indicate we will respond asynchronously
     handleMessage(request, sender)
         .then(sendResponse)
@@ -189,4 +215,123 @@ async function decryptMessage(pubkey: string, ciphertext: string): Promise<{ dat
         }
         throw new Error('Failed to decrypt message');
     }
-} 
+}
+
+// Function to connect to a relay
+async function connectToRelay(relay: string): Promise<{ success: boolean, message: string }> {
+    try {
+        console.log(`Attempting to connect to relay: ${relay} at ${new Date().toISOString()}`);
+
+        // Create a new pool if it doesn't exist
+        if (!pool) {
+            console.log('Creating new SimplePool for relay connections');
+            pool = new SimplePool();
+        }
+
+        // Check if already connected to this relay
+        if (activeRelays.has(relay)) {
+            console.log(`Already connected to ${relay}`);
+            return {
+                success: true,
+                message: `Already connected to ${relay}`
+            };
+        }
+
+        // Get public key to verify connection works
+        const keys = await getKeys();
+        if (!keys) {
+            return {
+                success: false,
+                message: 'No private key found. Please create one first.'
+            };
+        }
+        const publicKey = keys.publicKey;
+        console.log(`Using public key: ${publicKey}`);
+
+        // Test direct connection to the relay first
+        console.log(`Testing direct connection to ${relay}...`);
+
+        const testConnectionStartTime = Date.now();
+        const testResult = await pool.get(
+            [relay],
+            { kinds: [1], limit: 1 } // Just try to get a single note
+        );
+
+        const connectionTime = Date.now() - testConnectionStartTime;
+        if (testResult === null) {
+            console.log(`Initial connection test completed in ${connectionTime}ms but returned no data`);
+        } else {
+            console.log(`✅ Initial connection successful in ${connectionTime}ms, got data from relay!`);
+        }
+
+        // Use the pool to connect to the relay using subscribeMany
+        const filters: Filter[] = [
+            {
+                kinds: [0, 1], // Metadata and text notes
+                authors: [publicKey]
+            }
+        ];
+
+        console.log(`Starting subscription at ${new Date().toISOString()}`);
+        let receivedFirstEvent = false;
+
+        // Create subscription to the relay
+        const subscription = pool.subscribeMany(
+            [relay],
+            filters,
+            {
+                onevent(event: Event) {
+                    const now = Date.now();
+                    if (!receivedFirstEvent) {
+                        receivedFirstEvent = true;
+                        console.log(`✅ CONNECTION OPEN! First event received at ${new Date(now).toISOString()}`);
+                        console.log(`Connection established and working with relay: ${relay}`);
+                    }
+                    console.log(`Received event from relay:`, event);
+                },
+                oneose() {
+                    console.log(`EOSE (End of Stored Events) received at ${new Date().toISOString()}`);
+                    if (!receivedFirstEvent) {
+                        console.log(`Connection appears to be working, but no events matched our filter.`);
+                    }
+                    // Mark relay as active
+                    activeRelays.add(relay);
+                }
+            }
+        );
+
+        console.log(`Subscription created and waiting for events...`);
+
+        // Return success message
+        return {
+            success: true,
+            message: `Connection request to ${relay} initiated successfully`
+        };
+    } catch (error) {
+        if (error instanceof Error) {
+            console.error(`❌ Error connecting to relay: ${error.message}`);
+            return {
+                success: false,
+                message: `Error connecting to relay: ${error.message}`
+            };
+        }
+        return {
+            success: false,
+            message: "Unknown error occurred while connecting to relay"
+        };
+    }
+}
+
+// Initialize connections when the extension starts up
+chrome.runtime.onStartup.addListener(async () => {
+    try {
+        // Check if we have keys
+        const keys = await getKeys();
+        if (keys) {
+            // Connect to the default relay
+            await connectToRelay('ws://localhost:8080');
+        }
+    } catch (error) {
+        console.error('Error during startup:', error);
+    }
+}); 
