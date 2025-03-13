@@ -163,24 +163,6 @@
       margin-left: 0;
       width: 100%;
     }
-
-    #status {
-      margin-top: 10px;
-      padding: 8px;
-      border-radius: 4px;
-      text-align: center;
-      display: none;
-    }
-
-    .success {
-      background-color: #27ae60;
-      color: white;
-    }
-
-    .error {
-      background-color: #e74c3c;
-      color: white;
-    }
   </style>
 </head>
 
@@ -193,7 +175,7 @@
     <button id="show-login">Login</button>
 
     <form id="login-form">
-      <input type="password" id="private-key-input" placeholder="Enter your private key (hex format)" required>
+      <input type="password" id="private-key-input" placeholder="Enter your private key (nsec or hex format)" required>
       <button type="submit">Login</button>
     </form>
   </div>
@@ -207,18 +189,7 @@
       </div>
     </div>
 
-    <div class="section">
-      <div class="section-title">Manage Relays</div>
-      <ul id="relays-list">
-        <li>Loading relays...</li>
-      </ul>
-      <button id="add-relay">Add Relay</button>
-
-      <form id="add-relay-form">
-        <input type="text" id="relay-url" placeholder="wss://relay.example.com" required>
-        <button type="submit">Save</button>
-      </form>
-    </div>
+    <!-- Manage Relays section has been removed -->
   </div>
 
   <script src="dist/popup.js"></script>
