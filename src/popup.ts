@@ -1,7 +1,7 @@
 // popup.ts - UI for the extension popup
 
 // Import needed modules from nostr-tools
-import { nip19, SimplePool, type Event, type Filter } from 'nostr-tools';
+import { nip19 } from 'nostr-tools';
 import { bytesToHex } from '@noble/hashes/utils';
 
 // Elements
@@ -18,7 +18,6 @@ const privateKeyInput = document.getElementById('private-key-input') as HTMLInpu
 
 // Storage keys
 const STORAGE_KEY = 'nostr_keys';
-const RELAYS_KEY = 'nostr_relays';
 
 // The nextblock relay endpoint
 const NEXTBLOCK_RELAY = 'ws://localhost:8080';
@@ -154,25 +153,6 @@ const getPublicKey = async (): Promise<string> => {
       console.error(`Error getting public key: ${error.message}`);
     }
     return '';
-  }
-};
-
-// Function to get the user's relays - kept for compatibility with background script
-const getRelays = async (): Promise<Record<string, { read: boolean; write: boolean }>> => {
-  try {
-    // Get the response from the background script
-    const response = await chrome.runtime.sendMessage({ type: 'nostr_getRelays' });
-
-    if (response.error) {
-      throw new Error(response.error);
-    }
-
-    return response.data;
-  } catch (error) {
-    if (error instanceof Error) {
-      console.error(`Error getting relays: ${error.message}`);
-    }
-    return {};
   }
 };
 
