@@ -3,7 +3,7 @@
 ## 1. Executive Summary
 
 NextBlock Billboard is a browser extension that integrates with the Nostr protocol, allowing users to participate in the attention marketplace while browsing the web. The extension allows users to do the following:
-1. create or import Nostr accounts
+1. create or import multiple Nostr accounts
 2. NIP-07 implementation
 3. connect to the nextblock relay with nip42 auth
 4. listen for ["BITCOIN"] type nostr events from the relay 
