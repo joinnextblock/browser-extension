@@ -5,11 +5,12 @@ let nostrConnected = false;
 function initNostr() {
     console.log('Initializing Nostr connection management');
 
-    // Check if we already have a nostrKey in localStorage
-    const nostrKey = localStorage.getItem('nostrKey');
-    if (nostrKey) {
-        connectToNostrRelay(nostrKey);
-    }
+    // Check if we already have a nostrKey in storage
+    chrome.storage.local.get(['nostrKey'], (result) => {
+        if (result && result.nostrKey) {
+            connectToNostrRelay(result.nostrKey);
+        }
+    });
 
     // Listen for messages from the background script
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
@@ -35,19 +36,6 @@ function initNostr() {
                 console.error('Nostr relay error:', message.error);
                 // Handle error here
                 break;
-        }
-    });
-
-    // Monitor localStorage for changes
-    window.addEventListener('storage', (event) => {
-        if (event.key === 'nostrKey') {
-            if (event.newValue) {
-                console.log('Nostr key was added to local storage');
-                connectToNostrRelay(event.newValue);
-            } else {
-                // Key was removed
-                disconnectFromNostrRelay();
-            }
         }
     });
 
@@ -136,37 +124,40 @@ function setupUI() {
             const privateKey = privateKeyInput.value.trim();
 
             if (privateKey) {
-                // Save the private key to localStorage
-                localStorage.setItem('nostrKey', privateKey);
+                // Save the private key to chrome.storage.local instead of localStorage
+                chrome.storage.local.set({ nostrKey: privateKey }, () => {
+                    console.log('Private key saved to chrome.storage.local');
 
-                // Hide login form and show main container
-                accountContainer.style.display = 'none';
-                mainContainer.style.display = 'block';
+                    // Hide login form and show main container
+                    accountContainer.style.display = 'none';
+                    mainContainer.style.display = 'block';
 
-                // Connect to Nostr relay
-                connectToNostrRelay(privateKey);
+                    // Connect to Nostr relay
+                    connectToNostrRelay(privateKey);
 
-                // Display the public key (this is a placeholder - you would derive the public key from the private key)
-                const publicKeyElement = document.getElementById('public-key');
-                if (publicKeyElement) {
-                    publicKeyElement.textContent = 'Public key derived from private key';
+                    // Display the public key (this is a placeholder - you would derive the public key from the private key)
+                    const publicKeyElement = document.getElementById('public-key');
+                    if (publicKeyElement) {
+                        publicKeyElement.textContent = 'Public key derived from private key';
 
-                    // Enable copy button
-                    const copyButton = document.getElementById('copy-pubkey');
-                    if (copyButton) {
-                        copyButton.disabled = false;
+                        // Enable copy button
+                        const copyButton = document.getElementById('copy-pubkey');
+                        if (copyButton) {
+                            copyButton.disabled = false;
+                        }
                     }
-                }
+                });
             }
         });
     }
 
     // Check if we already have a nostrKey and update UI accordingly
-    const nostrKey = localStorage.getItem('nostrKey');
-    if (nostrKey && accountContainer && mainContainer) {
-        accountContainer.style.display = 'none';
-        mainContainer.style.display = 'block';
-    }
+    chrome.storage.local.get(['nostrKey'], (result) => {
+        if (result && result.nostrKey && accountContainer && mainContainer) {
+            accountContainer.style.display = 'none';
+            mainContainer.style.display = 'block';
+        }
+    });
 }
 
 // Initialize on page load

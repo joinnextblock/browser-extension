@@ -324,6 +324,71 @@ function connectToNostrRelay(nostrKey) {
     }
 }
 
+// Authenticate to a relay using NIP-42
+async function authenticateToRelay(relayURL, challenge, privateKey) {
+    try {
+        console.log(`Authenticating to relay ${relayURL} with challenge ${challenge}`);
+
+        // Get the public key from private key
+        const pubkey = await getPublicKeyFromPrivate(privateKey);
+
+        // Create an AUTH event according to NIP-42
+        // https://github.com/nostr-protocol/nips/blob/master/42.md
+        const authEvent = {
+            kind: 22242,  // NIP-42 AUTH event kind
+            created_at: Math.floor(Date.now() / 1000),
+            tags: [
+                ["relay", relayURL],
+                ["challenge", challenge]
+            ],
+            content: ""
+        };
+
+        // Sign the event
+        const signedEvent = await signEventWithPrivateKey(privateKey, authEvent);
+
+        // Send the AUTH event to the relay
+        if (socket && socket.readyState === WebSocket.OPEN) {
+            const authMessage = ["AUTH", signedEvent];
+            socket.send(JSON.stringify(authMessage));
+            console.log('AUTH response sent:', authMessage);
+
+            // Remove the challenge from stored challenges since we've handled it
+            storedChallenges.delete(relayURL);
+
+            return true;
+        } else {
+            console.error('Cannot authenticate: WebSocket is not connected');
+            throw new Error('WebSocket is not connected');
+        }
+    } catch (error) {
+        console.error('Error in authenticateToRelay:', error);
+        throw error;
+    }
+}
+
+// Handle manual authentication request from UI
+async function manualAuthenticate(relayURL) {
+    try {
+        const challenge = storedChallenges.get(relayURL);
+        if (!challenge) {
+            console.error('No stored challenge for relay:', relayURL);
+            return false;
+        }
+
+        const privateKey = await getPrivateKey();
+        if (!privateKey) {
+            console.error('No private key available for authentication');
+            return false;
+        }
+
+        return await authenticateToRelay(relayURL, challenge, privateKey);
+    } catch (error) {
+        console.error('Error in manual authentication:', error);
+        return false;
+    }
+}
+
 // Handle AUTH challenge from relay (NIP-42)
 async function handleAuthChallenge(authMessage) {
     try {
