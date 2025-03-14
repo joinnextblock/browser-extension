@@ -9,6 +9,9 @@ const defaultRelays = {
 // Cache for user public key
 let cachedPublicKey = null;
 
+// Store the latest auth challenge for each relay
+const storedChallenges = new Map();
+
 // Listen for messages from the extension
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('Background script received message:', message);
@@ -28,6 +31,25 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
     else if (message.type === 'CHECK_NOSTR_CONNECTION') {
         sendResponse({ connected: socket !== null && socket.readyState === WebSocket.OPEN });
+    }
+    else if (message.type === 'AUTHENTICATE_RELAY') {
+        // Handle manual authentication request
+        manualAuthenticate(message.relayURL || 'wss://t-relay.nextblock.app')
+            .then(success => {
+                sendResponse({ success });
+            })
+            .catch(error => {
+                console.error('Authentication error:', error);
+                sendResponse({ success: false, error: error.message });
+            });
+    }
+    else if (message.type === 'GET_STORED_CHALLENGES') {
+        // Return all stored challenges that need authentication
+        const challenges = Array.from(storedChallenges.keys()).map(relay => ({
+            relay,
+            challenge: storedChallenges.get(relay)
+        }));
+        sendResponse({ challenges });
     }
     // Handle NIP-07 requests from content script
     else if (message.type === 'NIP07_REQUEST') {
@@ -124,14 +146,8 @@ async function handleNip07Request(message, sender) {
 async function getPrivateKey() {
     return new Promise((resolve, reject) => {
         try {
-            // First check localStorage (temporary solution)
-            const localKey = localStorage.getItem('nostrKey');
-            if (localKey) {
-                resolve(localKey);
-                return;
-            }
-
-            // Then check chrome.storage
+            // In background scripts, localStorage is not available
+            // Only use chrome.storage.local for background scripts
             chrome.storage.local.get(['nostrKey'], (result) => {
                 if (result && result.nostrKey) {
                     resolve(result.nostrKey);
@@ -264,15 +280,20 @@ function connectToNostrRelay(nostrKey) {
             // sendNostrMessage({ type: 'AUTH', key: nostrKey });
         });
 
-        socket.addEventListener('message', (event) => {
+        socket.addEventListener('message', async (event) => {
             const data = JSON.parse(event.data);
             console.log('Received message from Nostr relay:', data);
 
-            // Forward the message to any listening content scripts or popup
-            chrome.runtime.sendMessage({
-                type: 'NOSTR_MESSAGE',
-                data: data
-            });
+            // Handle AUTH message according to NIP-42
+            if (Array.isArray(data) && data[0] === 'AUTH') {
+                await handleAuthChallenge(data);
+            } else {
+                // Forward the message to any listening content scripts or popup
+                chrome.runtime.sendMessage({
+                    type: 'NOSTR_MESSAGE',
+                    data: data
+                });
+            }
         });
 
         socket.addEventListener('error', (error) => {
@@ -299,6 +320,48 @@ function connectToNostrRelay(nostrKey) {
         chrome.runtime.sendMessage({
             type: 'NOSTR_ERROR',
             error: 'Failed to connect: ' + error.message
+        });
+    }
+}
+
+// Handle AUTH challenge from relay (NIP-42)
+async function handleAuthChallenge(authMessage) {
+    try {
+        // Check if the message is properly formatted
+        if (authMessage.length < 2 || typeof authMessage[1] !== 'string') {
+            console.error('Invalid AUTH message format:', authMessage);
+            return;
+        }
+
+        const challenge = authMessage[1];
+
+        // Optional relay URL in the authMessage[2]
+        const relayURL = authMessage.length > 2 ? authMessage[2] : 'wss://t-relay.nextblock.app';
+
+        // Store the challenge for this relay
+        storedChallenges.set(relayURL, challenge);
+
+        // Get private key
+        const privateKey = await getPrivateKey();
+        if (!privateKey) {
+            console.log('No private key available to sign AUTH response - challenge stored for later authentication');
+
+            // Notify UI that authentication needs user action
+            chrome.runtime.sendMessage({
+                type: 'NOSTR_AUTH_NEEDED',
+                relay: relayURL,
+                message: 'Authentication required but no private key available'
+            });
+            return;
+        }
+
+        // If we have a private key, proceed with authentication
+        await authenticateToRelay(relayURL, challenge, privateKey);
+    } catch (error) {
+        console.error('Error handling AUTH challenge:', error);
+        chrome.runtime.sendMessage({
+            type: 'NOSTR_ERROR',
+            error: 'AUTH failed: ' + error.message
         });
     }
 }
